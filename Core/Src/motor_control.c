@@ -47,6 +47,18 @@ uint32_t Motor_ReadThrottleAdc(Motor_Config_t *config) {
 }
 
 /**
+ * @brief Converts raw ADC value (0-4095) to Throttle Duty Cycle percent (0-100%).
+ * @param adc_val Raw ADC value
+ * @return Throttle Duty Cycle percent (0 to 100)
+ */
+uint16_t Motor_AdcToDuty(uint32_t adc_val) {
+    // Convert ADC (0 - 4095) to Throttle Duty (0% - 100%)
+    uint32_t duty = (adc_val * 100) / 4095;
+    if (duty > 100) duty = 100;
+    return (uint16_t)duty;
+}
+
+/**
  * @brief Configures the timer duty cycle for PWM speed control.
  * @param config Pointer to Motor_Config_t configuration
  * @param duty Target speed percentage (0% to 100%)

@@ -52,7 +52,7 @@ void FCW_AEB_Process(FcwAebContext_t *ctx) {
     ctx->adc_value = Motor_ReadThrottleAdc(&ctx->motor);
     
     // 2. Convert ADC (0 - 4095) to Throttle Duty (0% - 100%)
-    uint16_t target_duty = (uint16_t)((ctx->adc_value * 100) / 4095);
+    uint16_t target_duty = Motor_AdcToDuty(ctx->adc_value);
     
     // 3. Measure and filter the obstacle distance
     ctx->raw_distance = HCSR04_MeasureDistance(&ctx->sensor);
