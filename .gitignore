@@ -1,0 +1,24 @@
+# STM32CubeIDE build folders
+Debug/
+Release/
+
+# Toolchain-generated files
+*.elf
+*.bin
+*.hex
+*.map
+*.list
+*.o
+*.su
+*.d
+
+# Local STM32CubeIDE / Eclipse settings and launch configs
+.settings/
+*.launch
+
+# Backup and temp files
+*~
+*.bak
+*.tmp
+.DS_Store
+Thumbs.db
