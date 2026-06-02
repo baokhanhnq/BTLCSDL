@@ -95,22 +95,25 @@ int main(void)
   MX_GPIO_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-  // 1. Define hardware configuration. Update pins to match your physical wiring!
-  HardwareConfig_t hw_config = {
+  // 1. Define modular hardware configurations. Update pins to match your physical wiring!
+  Motor_Config_t motor_config = {
       .hadc_throttle = &hadc1,         // Handle to Potentiometer ADC
       .htim_pwm = &htim2,              // Handle to Motor PWM Timer (L298N ENA)
-      .pwm_channel = TIM_CHANNEL_1,    // PWM Timer Channel (e.g. TIM_CHANNEL_1)
-      
-      .trig_port = GPIOA,
-      .trig_pin = GPIO_PIN_6,          // HC-SR04 Trig Pin
-      .echo_port = GPIOA,
-      .echo_pin = GPIO_PIN_7,          // HC-SR04 Echo Pin
-      
+      .pwm_channel = TIM_CHANNEL_1,    // PWM Timer Channel
       .in1_port = GPIOB,
       .in1_pin = GPIO_PIN_4,           // L298N IN1
       .in2_port = GPIOB,
-      .in2_pin = GPIO_PIN_5,           // L298N IN2
-      
+      .in2_pin = GPIO_PIN_5            // L298N IN2
+  };
+  
+  HCSR04_Config_t sensor_config = {
+      .trig_port = GPIOA,
+      .trig_pin = GPIO_PIN_6,          // HC-SR04 Trig Pin
+      .echo_port = GPIOA,
+      .echo_pin = GPIO_PIN_7           // HC-SR04 Echo Pin
+  };
+  
+  Alerts_Config_t alerts_config = {
       .led_port = GPIOB,
       .led_pin = GPIO_PIN_0,           // Warning LED
       .buzzer_port = GPIOB,
@@ -124,8 +127,8 @@ int main(void)
       .safe_throttle_limit = 400       // Requiring throttle release < 10% (~400 / 4095)
   };
   
-  // 3. Initialize the FCW/AEB safety system context
-  FCW_AEB_Init(&fcw_aeb_ctx, hw_config, sys_config);
+  // 3. Initialize the FCW/AEB safety system context with modular configs
+  FCW_AEB_Init(&fcw_aeb_ctx, motor_config, sensor_config, alerts_config, sys_config);
   /* USER CODE END 2 */
 
   /* Infinite loop */

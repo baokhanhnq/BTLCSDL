@@ -15,6 +15,10 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "hcsr04.h"
+#include "filter.h"
+#include "motor_control.h"
+#include "alerts.h"
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -40,49 +44,21 @@ typedef struct {
 } SystemConfig_t;
 
 /**
- * @brief Peripheral and GPIO mapping pointers.
- */
-typedef struct {
-    ADC_HandleTypeDef *hadc_throttle;   /*!< Handle to ADC converting potentiometer value */
-    TIM_HandleTypeDef *htim_pwm;        /*!< Handle to Timer for PWM motor speed control */
-    uint32_t pwm_channel;               /*!< PWM Channel (e.g., TIM_CHANNEL_1) */
-    
-    /* HC-SR04 ultrasonic sensor pins */
-    GPIO_TypeDef *trig_port;
-    uint16_t trig_pin;
-    GPIO_TypeDef *echo_port;
-    uint16_t echo_pin;
-    
-    /* Motor Driver L298N direction control pins */
-    GPIO_TypeDef *in1_port;
-    uint16_t in1_pin;
-    GPIO_TypeDef *in2_port;
-    uint16_t in2_pin;
-    
-    /* Warning peripherals */
-    GPIO_TypeDef *led_port;
-    uint16_t led_pin;
-    GPIO_TypeDef *buzzer_port;
-    uint16_t buzzer_pin;
-} HardwareConfig_t;
-
-/**
- * @brief Main system runtime context structure.
+ * @brief Main system runtime context structure integrating all sub-module handlers.
  */
 typedef struct {
     SystemState_t current_state;        /*!< Active system state */
     SystemConfig_t config;              /*!< System threshold parameters */
-    HardwareConfig_t hw;                /*!< Peripheral configuration mapping */
+    
+    Motor_Config_t motor;              /*!< Motor and throttle driver configuration */
+    HCSR04_Config_t sensor;            /*!< Ultrasonic sensor configuration */
+    Alerts_Config_t alerts;            /*!< Alert outputs warning system configuration */
+    MedianFilter_t filter;             /*!< Median filtering circular buffer */
     
     uint16_t raw_distance;              /*!< Latest raw measured distance in cm */
     uint16_t filtered_distance;         /*!< Latest filtered distance in cm */
-    uint16_t filter_buffer[5];          /*!< Median filter circular buffer */
-    uint8_t filter_index;               /*!< Median filter circular index */
     uint32_t adc_value;                 /*!< Current raw throttle value (0 - 4095) */
     uint16_t motor_pwm_duty;            /*!< Calculated motor speed duty cycle (0 - 100%) */
-    
-    uint32_t last_warning_toggle;       /*!< Timestamp for alert toggle (blinking LED/Buzzer) */
-    bool warning_toggle_state;          /*!< State of the warning toggle (on/off) */
 } FcwAebContext_t;
 
 /* Exported Functions --------------------------------------------------------*/
@@ -90,37 +66,18 @@ typedef struct {
 /**
  * @brief Initializes the FCW & AEB simulation context and sets up starting states.
  * @param ctx Pointer to the FcwAebContext_t context struct
- * @param hw Hardware configurations
+ * @param motor Configured Motor_Config_t struct
+ * @param sensor Configured HCSR04_Config_t struct
+ * @param alerts Configured Alerts_Config_t struct
  * @param config System threshold configurations
  */
-void FCW_AEB_Init(FcwAebContext_t *ctx, HardwareConfig_t hw, SystemConfig_t config);
-
-/**
- * @brief Performs HC-SR04 sensor trigger and calculates the measured raw distance in cm.
- * @param ctx Pointer to context
- * @return Raw measured distance in centimeters (returns 999 if timeout or out of range)
- */
-uint16_t FCW_AEB_MeasureDistance(FcwAebContext_t *ctx);
-
-/**
- * @brief Updates the median filtering buffer and returns the median distance.
- * @param ctx Pointer to context
- * @param new_distance Latest raw measurement
- * @return Filtered distance in cm
- */
-uint16_t FCW_AEB_MedianFilter(FcwAebContext_t *ctx, uint16_t new_distance);
+void FCW_AEB_Init(FcwAebContext_t *ctx, Motor_Config_t motor, HCSR04_Config_t sensor, Alerts_Config_t alerts, SystemConfig_t config);
 
 /**
  * @brief Runs a single step of the FCW/AEB safety logic, transitions state machine, and controls outputs.
  * @param ctx Pointer to context
  */
 void FCW_AEB_Process(FcwAebContext_t *ctx);
-
-/**
- * @brief Utility delay function to wait in microseconds.
- * @param us Duration in microseconds
- */
-void delay_us(uint16_t us);
 
 #ifdef __cplusplus
 }
