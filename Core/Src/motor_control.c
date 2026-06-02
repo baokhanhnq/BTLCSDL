@@ -6,6 +6,7 @@
   */
 
 #include "motor_control.h"
+#include "adc.h"
 
 /**
  * @brief Initializes the L298N control state (starts PWM, sets forward direction).
@@ -32,18 +33,10 @@ void Motor_Init(Motor_Config_t *config) {
  * @return Raw ADC reading (0 to 4095)
  */
 uint32_t Motor_ReadThrottleAdc(Motor_Config_t *config) {
-    uint32_t adc_val = 0;
     if (config == NULL || config->hadc_throttle == NULL) {
         return 0;
     }
-    
-    HAL_ADC_Start(config->hadc_throttle);
-    if (HAL_ADC_PollForConversion(config->hadc_throttle, 10) == HAL_OK) {
-        adc_val = HAL_ADC_GetValue(config->hadc_throttle);
-    }
-    HAL_ADC_Stop(config->hadc_throttle);
-    
-    return adc_val;
+    return ADC_Read(config->hadc_throttle);
 }
 
 /**

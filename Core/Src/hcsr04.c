@@ -8,29 +8,6 @@
 #include "hcsr04.h"
 
 /**
- * @brief Initializes the DWT (Data Watchpoint and Trace) unit for microsecond timing.
- */
-void DWT_Init(void) {
-    if (!(CoreDebug->DEMCR & CoreDebug_DEMCR_TRCENA_Msk)) {
-        CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
-        DWT->CYCCNT = 0;
-        DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
-    }
-}
-
-/**
- * @brief Cycle-accurate microsecond delay using DWT.
- * @param us Microseconds to delay
- */
-void delay_us(uint16_t us) {
-    uint32_t startTick = DWT->CYCCNT;
-    uint32_t delayTicks = (uint32_t)us * (SystemCoreClock / 1000000);
-    while ((DWT->CYCCNT - startTick) < delayTicks) {
-        // Wait cycle
-    }
-}
-
-/**
  * @brief Sends a 10us trigger pulse and measures the echo pulse duration to calculate distance.
  * @param config Pointer to HC-SR04 pin configuration
  * @return Measured distance in centimeters. Returns 999 on timeout/error.

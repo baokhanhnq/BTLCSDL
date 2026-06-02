@@ -7,6 +7,8 @@
   */
 
 #include "fcw_aeb.h"
+#include "delay.h"
+#include "uart.h"
 #include <string.h>
 
 /**
@@ -35,7 +37,7 @@ void FCW_AEB_Init(FcwAebContext_t *ctx, Motor_Config_t motor, HCSR04_Config_t se
     ctx->filtered_distance = 100;
     
     // Initialize sub-modules
-    DWT_Init();
+    Delay_DWT_Init();
     Filter_Init(&ctx->filter, 100);
     Motor_Init(&ctx->motor);
     Alerts_Init(&ctx->alerts);
@@ -137,4 +139,15 @@ void FCW_AEB_Process(FcwAebContext_t *ctx) {
             ctx->current_state = STATE_CRUISE;
             break;
     }
+    
+    // 5. Print debug logging to PuTTY via UART
+    const char *state_str = "UNKNOWN";
+    switch (ctx->current_state) {
+        case STATE_CRUISE:       state_str = "CRUISE"; break;
+        case STATE_FCW:          state_str = "FCW WARNING"; break;
+        case STATE_AEB:          state_str = "AEB BRAKING"; break;
+        case STATE_SAFE_RELEASE: state_str = "SAFE RELEASE"; break;
+    }
+    UART_Printf("State: [%s] | Dist: %d cm (Raw: %d cm) | Throttle: %d%% | ADC: %d\r\n",
+                state_str, ctx->filtered_distance, ctx->raw_distance, ctx->motor_pwm_duty, ctx->adc_value);
 }

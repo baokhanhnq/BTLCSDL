@@ -14,6 +14,7 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "delay.h"
 #include <stdint.h>
 
 /* Exported Types ------------------------------------------------------------*/
@@ -29,17 +30,6 @@ typedef struct {
 } HCSR04_Config_t;
 
 /* Exported Functions --------------------------------------------------------*/
-
-/**
- * @brief Initializes the DWT unit for high-precision microsecond timing.
- */
-void DWT_Init(void);
-
-/**
- * @brief Delays execution for a specified number of microseconds using DWT.
- * @param us Duration in microseconds
- */
-void delay_us(uint16_t us);
 
 /**
  * @brief Sends a 10us trigger pulse and measures the echo pulse duration to calculate distance.

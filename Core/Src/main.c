@@ -22,6 +22,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "fcw_aeb.h"
+#include "uart.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -127,7 +128,11 @@ int main(void)
       .safe_throttle_limit = 400       // Requiring throttle release < 10% (~400 / 4095)
   };
   
-  // 3. Initialize the FCW/AEB safety system context with modular configs
+  // 3. Initialize the UART logging utility
+  UART_Init(&huart2);
+  UART_SendString("=== STM32 FCW & AEB SAFETY SYSTEM INITIALIZED ===\r\n");
+
+  // 4. Initialize the FCW/AEB safety system context with modular configs
   FCW_AEB_Init(&fcw_aeb_ctx, motor_config, sensor_config, alerts_config, sys_config);
   /* USER CODE END 2 */
 
