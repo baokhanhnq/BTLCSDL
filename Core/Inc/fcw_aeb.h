@@ -18,7 +18,7 @@ extern "C" {
 #include "hcsr04.h"
 #include "filter.h"
 #include "motor_control.h"
-#include "alerts.h"
+#include "led_buzzer.h"
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -52,7 +52,7 @@ typedef struct {
     
     Motor_Config_t motor;              /*!< Motor and throttle driver configuration */
     HCSR04_Config_t sensor;            /*!< Ultrasonic sensor configuration */
-    Alerts_Config_t alerts;            /*!< Alert outputs warning system configuration */
+    LedBuzzer_Config_t led_buzzer;      /*!< LED and Buzzer warning system configuration */
     MedianFilter_t filter;             /*!< Median filtering circular buffer */
     
     uint16_t raw_distance;              /*!< Latest raw measured distance in cm */
@@ -68,10 +68,10 @@ typedef struct {
  * @param ctx Pointer to the FcwAebContext_t context struct
  * @param motor Configured Motor_Config_t struct
  * @param sensor Configured HCSR04_Config_t struct
- * @param alerts Configured Alerts_Config_t struct
+ * @param led_buzzer Configured LedBuzzer_Config_t struct
  * @param config System threshold configurations
  */
-void FCW_AEB_Init(FcwAebContext_t *ctx, Motor_Config_t motor, HCSR04_Config_t sensor, Alerts_Config_t alerts, SystemConfig_t config);
+void FCW_AEB_Init(FcwAebContext_t *ctx, Motor_Config_t motor, HCSR04_Config_t sensor, LedBuzzer_Config_t led_buzzer, SystemConfig_t config);
 
 /**
  * @brief Runs a single step of the FCW/AEB safety logic, transitions state machine, and controls outputs.

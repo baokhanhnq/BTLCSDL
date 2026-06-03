@@ -16,10 +16,10 @@
  * @param ctx Pointer to the FcwAebContext_t context struct
  * @param motor Configured Motor_Config_t struct
  * @param sensor Configured HCSR04_Config_t struct
- * @param alerts Configured Alerts_Config_t struct
+ * @param led_buzzer Configured LedBuzzer_Config_t struct
  * @param config System threshold configurations
  */
-void FCW_AEB_Init(FcwAebContext_t *ctx, Motor_Config_t motor, HCSR04_Config_t sensor, Alerts_Config_t alerts, SystemConfig_t config) {
+void FCW_AEB_Init(FcwAebContext_t *ctx, Motor_Config_t motor, HCSR04_Config_t sensor, LedBuzzer_Config_t led_buzzer, SystemConfig_t config) {
     if (ctx == NULL) return;
     
     // Clear context
@@ -28,7 +28,7 @@ void FCW_AEB_Init(FcwAebContext_t *ctx, Motor_Config_t motor, HCSR04_Config_t se
     // Copy configurations
     ctx->motor = motor;
     ctx->sensor = sensor;
-    ctx->alerts = alerts;
+    ctx->led_buzzer = led_buzzer;
     ctx->config = config;
     
     // Set default initial values
@@ -40,7 +40,7 @@ void FCW_AEB_Init(FcwAebContext_t *ctx, Motor_Config_t motor, HCSR04_Config_t se
     Delay_DWT_Init();
     Filter_Init(&ctx->filter, 100);
     Motor_Init(&ctx->motor);
-    Alerts_Init(&ctx->alerts);
+    LedBuzzer_Init(&ctx->led_buzzer);
 }
 
 /**
@@ -68,7 +68,7 @@ void FCW_AEB_Process(FcwAebContext_t *ctx) {
         
         case STATE_CRUISE:
             // Warnings are off in normal mode
-            Alerts_SetSolid(&ctx->alerts, false);
+            LedBuzzer_SetSolid(&ctx->led_buzzer, false);
             
             // Set motor speed following throttle directly
             Motor_SetSpeed(&ctx->motor, target_duty);
@@ -83,8 +83,8 @@ void FCW_AEB_Process(FcwAebContext_t *ctx) {
             break;
             
         case STATE_FCW:
-            // Drive warning alerts (blink LED & Buzzer moderately at 250ms)
-            Alerts_UpdateBlink(&ctx->alerts, 250);
+            // Drive warning led & buzzer (blink LED & Buzzer moderately at 250ms)
+            LedBuzzer_UpdateBlink(&ctx->led_buzzer, 250);
             
             // Safety Option: Limit speed to max 50% in Warning zone
             uint16_t capped_duty = (target_duty > 50) ? 50 : target_duty;
@@ -104,8 +104,8 @@ void FCW_AEB_Process(FcwAebContext_t *ctx) {
             Motor_ApplyBrake(&ctx->motor);
             ctx->motor_pwm_duty = 0;
             
-            // Keep alerts solid ON
-            Alerts_SetSolid(&ctx->alerts, true);
+            // Keep LED & Buzzer solid ON
+            LedBuzzer_SetSolid(&ctx->led_buzzer, true);
             
             // Transition immediately to safety recovery release state
             ctx->current_state = STATE_SAFE_RELEASE;
@@ -116,8 +116,8 @@ void FCW_AEB_Process(FcwAebContext_t *ctx) {
             Motor_ApplyBrake(&ctx->motor);
             ctx->motor_pwm_duty = 0;
             
-            // Flashing alerts rapidly (100ms) to indicate vehicle is locked in safe mode
-            Alerts_UpdateBlink(&ctx->alerts, 100);
+            // Flashing LED & Buzzer rapidly (100ms) to indicate vehicle is locked in safe mode
+            LedBuzzer_UpdateBlink(&ctx->led_buzzer, 100);
             
             // Transition condition: Only release and return to CRUISE when:
             // 1. The obstacle is cleared (Distance >= warning distance + hysteresis)
@@ -125,8 +125,8 @@ void FCW_AEB_Process(FcwAebContext_t *ctx) {
             if (ctx->filtered_distance >= (ctx->config.warning_distance + HYSTERESIS) && 
                 ctx->adc_value <= ctx->config.safe_throttle_limit) {
                 
-                // Clear alerts
-                Alerts_SetSolid(&ctx->alerts, false);
+                // Clear warning LED & Buzzer
+                LedBuzzer_SetSolid(&ctx->led_buzzer, false);
                 
                 // Re-initialize/restore forward drive direction pins
                 Motor_Init(&ctx->motor);

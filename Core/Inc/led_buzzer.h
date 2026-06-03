@@ -1,12 +1,12 @@
 /**
   ******************************************************************************
-  * @file           : alerts.h
-  * @brief          : LED and Buzzer alert warning system header.
+  * @file           : led_buzzer.h
+  * @brief          : LED and Buzzer warning system header.
   ******************************************************************************
   */
 
-#ifndef INC_ALERTS_H_
-#define INC_ALERTS_H_
+#ifndef INC_LED_BUZZER_H_
+#define INC_LED_BUZZER_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -30,32 +30,32 @@ typedef struct {
     
     uint32_t last_warning_toggle;       /*!< Timestamp for alert toggle (blinking LED/Buzzer) */
     bool warning_toggle_state;          /*!< State of the warning toggle (on/off) */
-} Alerts_Config_t;
+} LedBuzzer_Config_t;
 
 /* Exported Functions --------------------------------------------------------*/
 
 /**
  * @brief Initializes warning outputs to off.
- * @param config Pointer to Alerts_Config_t
+ * @param config Pointer to LedBuzzer_Config_t
  */
-void Alerts_Init(Alerts_Config_t *config);
+void LedBuzzer_Init(LedBuzzer_Config_t *config);
 
 /**
  * @brief Sets both warning LED and Buzzer to a solid ON or OFF state.
- * @param config Pointer to Alerts_Config_t
+ * @param config Pointer to LedBuzzer_Config_t
  * @param state Target status (true for solid ON, false for solid OFF)
  */
-void Alerts_SetSolid(Alerts_Config_t *config, bool state);
+void LedBuzzer_SetSolid(LedBuzzer_Config_t *config, bool state);
 
 /**
  * @brief Performs non-blocking blinking of both LED and Buzzer at a specified interval.
- * @param config Pointer to Alerts_Config_t
+ * @param config Pointer to LedBuzzer_Config_t
  * @param interval_ms Blink interval duration in milliseconds
  */
-void Alerts_UpdateBlink(Alerts_Config_t *config, uint32_t interval_ms);
+void LedBuzzer_UpdateBlink(LedBuzzer_Config_t *config, uint32_t interval_ms);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* INC_ALERTS_H_ */
+#endif /* INC_LED_BUZZER_H_ */

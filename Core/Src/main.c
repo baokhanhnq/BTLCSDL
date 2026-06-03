@@ -114,7 +114,7 @@ int main(void)
       .echo_pin = GPIO_PIN_7           // HC-SR04 Echo Pin
   };
   
-  Alerts_Config_t alerts_config = {
+  LedBuzzer_Config_t led_buzzer_config = {
       .led_port = GPIOB,
       .led_pin = GPIO_PIN_0,           // Warning LED
       .buzzer_port = GPIOB,
@@ -133,7 +133,7 @@ int main(void)
   UART_SendString("=== STM32 FCW & AEB SAFETY SYSTEM INITIALIZED ===\r\n");
 
   // 4. Initialize the FCW/AEB safety system context with modular configs
-  FCW_AEB_Init(&fcw_aeb_ctx, motor_config, sensor_config, alerts_config, sys_config);
+  FCW_AEB_Init(&fcw_aeb_ctx, motor_config, sensor_config, led_buzzer_config, sys_config);
   /* USER CODE END 2 */
 
   /* Infinite loop */

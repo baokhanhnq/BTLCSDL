@@ -1,17 +1,17 @@
 /**
   ******************************************************************************
-  * @file           : alerts.c
-  * @brief          : LED and Buzzer alert warning system implementation.
+  * @file           : led_buzzer.c
+  * @brief          : LED and Buzzer warning system implementation.
   ******************************************************************************
   */
 
-#include "alerts.h"
+#include "led_buzzer.h"
 
 /**
  * @brief Initializes warning outputs to off and clears timestamp.
- * @param config Pointer to Alerts_Config_t
+ * @param config Pointer to LedBuzzer_Config_t
  */
-void Alerts_Init(Alerts_Config_t *config) {
+void LedBuzzer_Init(LedBuzzer_Config_t *config) {
     if (config == NULL) return;
     
     config->last_warning_toggle = 0;
@@ -28,10 +28,10 @@ void Alerts_Init(Alerts_Config_t *config) {
 
 /**
  * @brief Sets both warning LED and Buzzer to a solid ON or OFF state.
- * @param config Pointer to Alerts_Config_t
+ * @param config Pointer to LedBuzzer_Config_t
  * @param state Target status (true for solid ON, false for solid OFF)
  */
-void Alerts_SetSolid(Alerts_Config_t *config, bool state) {
+void LedBuzzer_SetSolid(LedBuzzer_Config_t *config, bool state) {
     if (config == NULL) return;
     
     GPIO_PinState pin_state = state ? GPIO_PIN_SET : GPIO_PIN_RESET;
@@ -46,10 +46,10 @@ void Alerts_SetSolid(Alerts_Config_t *config, bool state) {
 
 /**
  * @brief Performs non-blocking blinking of both LED and Buzzer at a specified interval.
- * @param config Pointer to Alerts_Config_t
+ * @param config Pointer to LedBuzzer_Config_t
  * @param interval_ms Blink interval duration in milliseconds
  */
-void Alerts_UpdateBlink(Alerts_Config_t *config, uint32_t interval_ms) {
+void LedBuzzer_UpdateBlink(LedBuzzer_Config_t *config, uint32_t interval_ms) {
     if (config == NULL) return;
     
     uint32_t current_time = HAL_GetTick();
