@@ -67,8 +67,8 @@ void FCW_AEB_Process(FcwAebContext_t *ctx) {
     switch (ctx->current_state) {
         
         case STATE_CRUISE:
-            // Warnings are off in normal mode
-            LedBuzzer_SetSolid(&ctx->led_buzzer, false);
+            // Green LED is solid ON in normal Cruise mode, others are OFF
+            LedBuzzer_SetSolid(&ctx->led_buzzer, true, false, false, false);
             
             // Set motor speed following throttle directly
             Motor_SetSpeed(&ctx->motor, target_duty);
@@ -83,8 +83,8 @@ void FCW_AEB_Process(FcwAebContext_t *ctx) {
             break;
             
         case STATE_FCW:
-            // Drive warning led & buzzer (blink LED & Buzzer moderately at 250ms)
-            LedBuzzer_UpdateBlink(&ctx->led_buzzer, 250);
+            // Blink Yellow LED and Buzzer in Warning mode (moderate interval 250ms)
+            LedBuzzer_UpdateBlink(&ctx->led_buzzer, false, true, false, true, 250);
             
             // Safety Option: Limit speed to max 50% in Warning zone
             uint16_t capped_duty = (target_duty > 50) ? 50 : target_duty;
@@ -104,8 +104,8 @@ void FCW_AEB_Process(FcwAebContext_t *ctx) {
             Motor_ApplyBrake(&ctx->motor);
             ctx->motor_pwm_duty = 0;
             
-            // Keep LED & Buzzer solid ON
-            LedBuzzer_SetSolid(&ctx->led_buzzer, true);
+            // Keep Red LED and Buzzer solid ON during emergency braking
+            LedBuzzer_SetSolid(&ctx->led_buzzer, false, false, true, true);
             
             // Transition immediately to safety recovery release state
             ctx->current_state = STATE_SAFE_RELEASE;
@@ -116,8 +116,8 @@ void FCW_AEB_Process(FcwAebContext_t *ctx) {
             Motor_ApplyBrake(&ctx->motor);
             ctx->motor_pwm_duty = 0;
             
-            // Flashing LED & Buzzer rapidly (100ms) to indicate vehicle is locked in safe mode
-            LedBuzzer_UpdateBlink(&ctx->led_buzzer, 100);
+            // Blink Red LED and Buzzer rapidly (100ms) indicating lock state
+            LedBuzzer_UpdateBlink(&ctx->led_buzzer, false, false, true, true, 100);
             
             // Transition condition: Only release and return to CRUISE when:
             // 1. The obstacle is cleared (Distance >= warning distance + hysteresis)
@@ -125,8 +125,8 @@ void FCW_AEB_Process(FcwAebContext_t *ctx) {
             if (ctx->filtered_distance >= (ctx->config.warning_distance + HYSTERESIS) && 
                 ctx->adc_value <= ctx->config.safe_throttle_limit) {
                 
-                // Clear warning LED & Buzzer
-                LedBuzzer_SetSolid(&ctx->led_buzzer, false);
+                // Reset warning LED and Buzzer before restoring cruise
+                LedBuzzer_SetSolid(&ctx->led_buzzer, false, false, false, false);
                 
                 // Re-initialize/restore forward drive direction pins
                 Motor_Init(&ctx->motor);

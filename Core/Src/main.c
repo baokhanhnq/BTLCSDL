@@ -46,10 +46,10 @@ UART_HandleTypeDef huart2;
 /* USER CODE BEGIN PV */
 FcwAebContext_t fcw_aeb_ctx;
 
-// Note: Once you configure ADC1 and TIM2 in CubeMX, these handles will be generated.
+// Note: Once you configure ADC1 and TIM1 in CubeMX, these handles will be generated.
 // We declare them here as extern to ensure clean integration.
 extern ADC_HandleTypeDef hadc1;
-extern TIM_HandleTypeDef htim2;
+extern TIM_HandleTypeDef htim1;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -98,27 +98,31 @@ int main(void)
   /* USER CODE BEGIN 2 */
   // 1. Define modular hardware configurations. Update pins to match your physical wiring!
   Motor_Config_t motor_config = {
-      .hadc_throttle = &hadc1,         // Handle to Potentiometer ADC
-      .htim_pwm = &htim2,              // Handle to Motor PWM Timer (L298N ENA)
+      .hadc_throttle = &hadc1,         // Handle to Potentiometer ADC (ADC1_IN4 on PA4)
+      .htim_pwm = &htim1,              // Handle to Motor PWM Timer (TIM1_CH1 on PA8)
       .pwm_channel = TIM_CHANNEL_1,    // PWM Timer Channel
       .in1_port = GPIOB,
-      .in1_pin = GPIO_PIN_4,           // L298N IN1
+      .in1_pin = GPIO_PIN_0,           // L298N IN1 on PB0
       .in2_port = GPIOB,
-      .in2_pin = GPIO_PIN_5            // L298N IN2
+      .in2_pin = GPIO_PIN_1            // L298N IN2 on PB1
   };
   
   HCSR04_Config_t sensor_config = {
       .trig_port = GPIOA,
-      .trig_pin = GPIO_PIN_6,          // HC-SR04 Trig Pin
+      .trig_pin = GPIO_PIN_0,          // HC-SR04 Trig Pin on PA0
       .echo_port = GPIOA,
-      .echo_pin = GPIO_PIN_7           // HC-SR04 Echo Pin
+      .echo_pin = GPIO_PIN_1           // HC-SR04 Echo Pin on PA1
   };
   
   LedBuzzer_Config_t led_buzzer_config = {
-      .led_port = GPIOB,
-      .led_pin = GPIO_PIN_0,           // Warning LED
-      .buzzer_port = GPIOB,
-      .buzzer_pin = GPIO_PIN_1         // Warning Buzzer
+      .green_led_port = GPIOC,
+      .green_led_pin = GPIO_PIN_0,     // LED Green on PC0 (Safe)
+      .yellow_led_port = GPIOC,
+      .yellow_led_pin = GPIO_PIN_1,    // LED Yellow on PC1 (FCW Warning)
+      .red_led_port = GPIOC,
+      .red_led_pin = GPIO_PIN_2,       // LED Red on PC2 (AEB Brake)
+      .buzzer_port = GPIOC,
+      .buzzer_pin = GPIO_PIN_3         // Warning Buzzer on PC3
   };
   
   // 2. Define distance thresholds (in cm) and gas release safe threshold
