@@ -26,8 +26,14 @@ void UART_Init(UART_HandleTypeDef *huart) {
  * @param c Character to transmit
  */
 void UART_SendChar(char c) {
-    if (g_huart == NULL) return;
-    HAL_UART_Transmit(g_huart, (uint8_t *)&c, 1, 10);
+    if (g_huart == NULL || g_huart->Instance == NULL) return;
+    USART_TypeDef *USARTx = g_huart->Instance;
+    
+    // Chờ cờ TXE (Transmit data register empty) trong thanh ghi SR bằng 1 (Register-level)
+    while (!(USARTx->SR & USART_SR_TXE));
+    
+    // Ghi ký tự vào thanh ghi dữ liệu DR (Data Register) để truyền đi
+    USARTx->DR = c;
 }
 
 /**
@@ -35,8 +41,11 @@ void UART_SendChar(char c) {
  * @param str Pointer to string
  */
 void UART_SendString(const char *str) {
-    if (str == NULL || g_huart == NULL) return;
-    HAL_UART_Transmit(g_huart, (uint8_t *)str, strlen(str), 100);
+    if (str == NULL || g_huart == NULL || g_huart->Instance == NULL) return;
+    
+    while (*str) {
+        UART_SendChar(*str++);
+    }
 }
 
 /**
