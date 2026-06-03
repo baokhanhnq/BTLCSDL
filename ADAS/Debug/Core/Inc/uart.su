@@ -1,0 +1,4 @@
+../Core/Inc/uart.c:3:6:UART2_Init	4	static
+../Core/Inc/uart.c:21:6:UART_SendChar	16	static
+../Core/Inc/uart.c:28:6:UART_SendString	16	static
+../Core/Inc/uart.c:36:6:UART_SendNumber	32	static

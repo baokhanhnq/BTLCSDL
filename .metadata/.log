@@ -1,0 +1,24 @@
+!SESSION 2026-06-03 08:50:50.800 -----------------------------------------------
+eclipse.buildId=Version 1.17.0
+java.version=21.0.3
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=win32, ARCH=x86_64, WS=win32, NL=en_US
+Command-line arguments:  -os win32 -ws win32 -arch x86_64
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 4 4 2026-06-03 08:50:59.198
+!MESSAGE CubeMX plugin appears to be active, Log4j initialization might be too late.
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2026-06-03 08:50:59.199
+!MESSAGE Log4j2 initialized with config file C:\Users\ZEPHYRUS M16\Documents\ST\CSDLDK\.metadata\.log4j2.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2026-06-03 08:51:01.429
+!MESSAGE Started RMI Server, listening on port 41337
+
+!ENTRY org.eclipse.cdt.core 1 0 2026-06-03 08:52:27.796
+!MESSAGE Indexed 'ADAS' (20 sources, 82 headers) in 2.97 sec: 4,771 declarations; 22,699 references; 0 unresolved inclusions; 1 syntax errors; 2 unresolved names (0.0073%)
+
+!ENTRY com.st.stm32cube.ide.mcu.debug.launch 2 0 2026-06-03 08:59:24.213
+!MESSAGE Won't launch debug session since we failed to locate the binary.
+
+!ENTRY com.st.stm32cube.ide.mcu.debug.launch 2 0 2026-06-03 08:59:25.809
+!MESSAGE Won't launch debug session since we failed to locate the binary.

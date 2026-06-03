@@ -1,0 +1,10 @@
+09:00:11 **** Incremental Build of configuration Debug for project ADAS ****
+make -j20 all 
+arm-none-eabi-size  ADAS.elf 
+   text	   data	    bss	    dec	    hex	filename
+   2312	      4	   1604	   3920	    f50	ADAS.elf
+Finished building: default.size.stdout
+ 
+
+09:00:11 Build Finished. 0 errors, 0 warnings. (took 191ms)
+

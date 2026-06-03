@@ -1,0 +1,4 @@
+../Core/Inc/uart.c:3:6:UART2_Init	1
+../Core/Inc/uart.c:21:6:UART_SendChar	2
+../Core/Inc/uart.c:28:6:UART_SendString	2
+../Core/Inc/uart.c:36:6:UART_SendNumber	4
