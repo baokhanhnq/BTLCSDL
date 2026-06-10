@@ -1,0 +1,17 @@
+# Leader should review project-level and integration changes.
+* @your-github-username
+
+# Application safety logic.
+/ASW/ @your-github-username
+
+# Sensors, motor, throttle, LEDs, buzzer.
+/BSW_ECUAL/ @your-github-username
+
+# Runtime interface and configuration.
+/RTE/ @your-github-username
+/Config/ @your-github-username
+
+# STM32Cube project and generated core files.
+/Core/ @your-github-username
+/Drivers/ @your-github-username
+/BTLCSDL.ioc @your-github-username

@@ -1,6 +1,7 @@
 # STM32CubeIDE build folders
 Debug/
 Release/
+.codex-build-workspace/
 
 # Toolchain-generated files
 *.elf
@@ -15,6 +16,8 @@ Release/
 # Local STM32CubeIDE / Eclipse settings and launch configs
 .settings/
 *.launch
+.metadata/
+.recommenders/
 
 # Backup and temp files
 *~

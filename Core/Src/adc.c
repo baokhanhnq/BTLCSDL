@@ -1,37 +1,36 @@
-/**
-  ******************************************************************************
-  * @file           : adc.c
-  * @brief          : Generic ADC Helper Utility Implementation.
-  ******************************************************************************
-  */
-
 #include "adc.h"
 
-/**
- * @brief Reads the raw digital value of a single ADC channel by polling for conversion.
- * @param hadc Handle to configured ADC peripheral
- * @return Raw ADC digitized reading (0 to 4095)
- */
-uint32_t ADC_Read(ADC_HandleTypeDef *hadc) {
-    if (hadc == NULL || hadc->Instance == NULL) {
-        return 0;
-    }
-    
-    ADC_TypeDef *ADCx = hadc->Instance;
-    
-    // 1. Bắt đầu chuyển đổi bằng cách ghi cờ SWSTART vào thanh ghi CR2 (Register-level)
-    ADCx->CR2 |= ADC_CR2_SWSTART;
-    
-    // 2. Chờ chuyển đổi hoàn tất bằng cách kiểm tra cờ EOC (End of Conversion) trong thanh ghi SR
-    // Có thêm timeout bảo vệ chống treo cứng CPU
-    uint32_t timeout = 10000;
-    while (!(ADCx->SR & ADC_SR_EOC)) {
-        timeout--;
-        if (timeout == 0) {
-            return 0; // Trả về 0 nếu bị timeout
-        }
-    }
-    
-    // 3. Đọc dữ liệu chuyển đổi từ thanh ghi dữ liệu DR (Data Register)
-    return ADCx->DR;
+void ADC1_Init(void)
+{
+    /* Enable GPIOA and ADC1 clocks */
+    RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN;
+    RCC->APB2ENR |= RCC_APB2ENR_ADC1EN;
+
+    volatile uint32_t dummy = RCC->APB2ENR;
+    (void)dummy;
+
+    /* Configure PA4 as analog input for ADC1_IN4 throttle */
+    GPIOA->MODER &= ~GPIO_MODER_MODE4_Msk;
+    GPIOA->MODER |= GPIO_MODER_MODE4_Msk;
+    GPIOA->PUPDR &= ~GPIO_PUPDR_PUPD4_Msk;
+
+    /* One conversion: channel 4 */
+    ADC1->SQR1 = 0;
+    ADC1->SQR3 = 4U;
+
+    /* 480-cycle sample time for channel 4 */
+    ADC1->SMPR2 &= ~ADC_SMPR2_SMP4_Msk;
+    ADC1->SMPR2 |= (7U << ADC_SMPR2_SMP4_Pos);
+
+    /* Enable ADC */
+    ADC1->CR2 |= ADC_CR2_ADON;
+}
+
+uint16_t ADC1_Read(void)
+{
+    ADC1->CR2 |= ADC_CR2_SWSTART;
+
+    while (!(ADC1->SR & ADC_SR_EOC));
+
+    return (uint16_t)ADC1->DR;
 }
