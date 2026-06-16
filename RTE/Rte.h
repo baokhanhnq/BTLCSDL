@@ -5,9 +5,8 @@
 #include <stdbool.h>
 #include "system_config.h"
 
-/* RTE Initialization and Main Processing */
+/* RTE Initialization */
 void Rte_Init(void);
-void Rte_Update(void);
 
 /* Sensor Data APIs */
 uint16_t Rte_Read_RawDistance(void);
