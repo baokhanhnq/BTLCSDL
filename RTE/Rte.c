@@ -25,15 +25,10 @@ void Rte_Init(void) {
     Alerts_Init();
 }
 
-void Rte_Update(void) {
-    /* Read sensors and map to RTE variables */
+uint16_t Rte_Read_RawDistance(void) {
+    /* Đọc khoảng cách mới khi ASW yêu cầu, không phụ thuộc Rte_Update() */
     rawDistanceCm10 = (uint16_t)HCSR04_ReadCm10();
     rawDistance = (rawDistanceCm10 + 5U) / 10U;
-    throttleAdc = Throttle_ReadAdc();
-    throttlePercent = Throttle_GetPercent(throttleAdc);
-}
-
-uint16_t Rte_Read_RawDistance(void) {
     return rawDistance;
 }
 
@@ -46,10 +41,16 @@ uint16_t Rte_Read_FilteredDistance(void) {
 }
 
 uint32_t Rte_Read_ThrottleAdc(void) {
+    /* Cập nhật cả ADC và phần trăm ga từ giá trị throttle mới nhất */
+    throttleAdc = Throttle_ReadAdc();
+    throttlePercent = Throttle_GetPercent(throttleAdc);
     return throttleAdc;
 }
 
 uint16_t Rte_Read_ThrottlePercent(void) {
+    /* Đảm bảo AEB/Cruise không đọc lại throttlePercent cũ */
+    throttleAdc = Throttle_ReadAdc();
+    throttlePercent = Throttle_GetPercent(throttleAdc);
     return throttlePercent;
 }
 

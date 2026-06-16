@@ -8,8 +8,9 @@ void App_CruiseCtrl_Init(void) {
 
 void App_CruiseCtrl_Process(void) {
     SystemState_t state = Rte_Read_SystemState();
-    uint16_t target_duty = Rte_Read_ThrottlePercent();
+    /* Đọc ADC trước để RTE cập nhật lại throttlePercent mới nhất */
     uint32_t throttle_adc = Rte_Read_ThrottleAdc();
+    uint16_t target_duty = Rte_Read_ThrottlePercent();
 
     if (throttle_adc == 0U || target_duty <= MOTOR_STOP_DUTY_MAX) {
         target_duty = 0U;

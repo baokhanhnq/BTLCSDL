@@ -115,7 +115,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-      Rte_Update();
+      /* AEB và Cruise tự đọc dữ liệu mới thông qua các hàm RTE read. */
       App_AebLogic_Process();
       App_CruiseCtrl_Process();
       delay_ms(50);
