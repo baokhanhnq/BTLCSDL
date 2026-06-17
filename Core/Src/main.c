@@ -27,7 +27,6 @@
 #include "App_AebLogic.h"
 #include "HCSR04.h"
 #include "uart.h"
-#include "delay.h"
 #include "Throttle.h"
 #include "L298N_Driver.h"
 /* USER CODE END Includes */
@@ -39,6 +38,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define SENSOR_TASK_PERIOD_MS    10U
+#define APP_TASK_PERIOD_MS       50U
 
 /* USER CODE END PD */
 
@@ -51,6 +52,8 @@
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
+static uint32_t sensorTaskLastTick = 0U;
+static uint32_t appTaskLastTick = 0U;
 
 /* USER CODE END PV */
 
@@ -100,6 +103,8 @@ int main(void)
   /* USER CODE BEGIN 2 */
   UART2_Init(&huart2);
   Rte_Init();
+  sensorTaskLastTick = HAL_GetTick();
+  appTaskLastTick = sensorTaskLastTick;
   
   SystemConfig_t sys_config = {
       .warning_distance = DEFAULT_WARNING_DISTANCE,
@@ -115,10 +120,21 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-      Rte_Update();
-      App_AebLogic_Process();
-      App_CruiseCtrl_Process();
-      delay_ms(50);
+      uint32_t now = HAL_GetTick();
+
+      if ((uint32_t)(now - sensorTaskLastTick) >= SENSOR_TASK_PERIOD_MS)
+      {
+          sensorTaskLastTick = now;
+          HCSR04_Process();
+          Throttle_Process();
+      }
+
+      if ((uint32_t)(now - appTaskLastTick) >= APP_TASK_PERIOD_MS)
+      {
+          appTaskLastTick = now;
+          App_AebLogic_Process();
+          App_CruiseCtrl_Process();
+      }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

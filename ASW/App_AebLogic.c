@@ -45,7 +45,7 @@ void App_AebLogic_Process(void) {
 
     if (set_speed <= MOTOR_STOP_DUTY_MAX) {
         Rte_Write_BrakeActive(false);
-        Rte_Write_Alerts(true, false, false, false);
+        Rte_Write_Alerts(STATE_CRUISE);
         Rte_Write_SystemState(STATE_CRUISE);
         Rte_LogStatus();
         return;
@@ -54,7 +54,7 @@ void App_AebLogic_Process(void) {
     switch (current_state) {
         case STATE_CRUISE:
             Rte_Write_BrakeActive(false);
-            Rte_Write_Alerts(true, false, false, false); /* Solid Green LED */
+            Rte_Write_Alerts(STATE_CRUISE);
             
             if (filtered_dist >= AEB_DISTANCE_MIN &&
                 filtered_dist <= danger_distance) {
@@ -67,7 +67,7 @@ void App_AebLogic_Process(void) {
             
         case STATE_FCW:
             Rte_Write_BrakeActive(false);
-            Rte_Update_AlertsBlink(false, true, false, true, 250); /* Blink Yellow and Buzzer */
+            Rte_Write_Alerts(STATE_FCW);
             
             if (filtered_dist >= AEB_DISTANCE_MIN &&
                 filtered_dist <= danger_distance) {
@@ -79,18 +79,18 @@ void App_AebLogic_Process(void) {
             
         case STATE_AEB:
             Rte_Write_BrakeActive(true);
-            Rte_Write_Alerts(false, false, true, true); /* Solid Red and Buzzer */
+            Rte_Write_Alerts(STATE_AEB);
             current_state = STATE_SAFE_RELEASE;
             break;
             
         case STATE_SAFE_RELEASE:
             Rte_Write_BrakeActive(true);
-            Rte_Update_AlertsBlink(false, false, true, true, 100); /* Blink Red and Buzzer fast */
+            Rte_Write_Alerts(STATE_SAFE_RELEASE);
             
             if (filtered_dist >= (warning_distance + HYSTERESIS) &&
                 set_speed <= systemConfig.safe_throttle_limit) {
                 
-                Rte_Write_Alerts(false, false, false, false);
+                Rte_Write_Alerts(STATE_CRUISE);
                 Rte_Write_BrakeActive(false);
                 current_state = STATE_CRUISE;
             }
