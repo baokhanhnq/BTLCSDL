@@ -33,7 +33,7 @@ void App_AebLogic_Init(SystemConfig_t config) {
 void App_AebLogic_Process(void) {
     uint16_t raw_dist = Rte_Read_RawDistance();
     uint16_t filtered_dist = Filter_Median_Update(&distanceFilter, raw_dist);
-    Rte_Write_FilteredDistance(filtered_dist);
+    Rte_Write_Distance(filtered_dist);
 
     uint16_t set_speed = Rte_Read_ThrottlePercent();
     SystemState_t current_state = Rte_Read_SystemState();
