@@ -25,28 +25,40 @@ void Rte_Init(void) {
     Alerts_Init();
 }
 
-void Rte_Update(void) {
-    /* Read sensors and map to RTE variables */
-    rawDistanceCm10 = (uint16_t)HCSR04_ReadCm10();
-    rawDistance = (rawDistanceCm10 + 5U) / 10U;
-    throttleAdc = Throttle_ReadAdc();
-    throttlePercent = Throttle_GetPercent(throttleAdc);
+void Rte_Write_RawDistance(uint16_t dist) {
+    rawDistance = dist;
 }
 
 uint16_t Rte_Read_RawDistance(void) {
     return rawDistance;
 }
 
-void Rte_Write_FilteredDistance(uint16_t dist) {
+void Rte_Write_RawDistanceCm10(uint16_t dist_cm10) {
+    rawDistanceCm10 = dist_cm10;
+}
+
+uint16_t Rte_Read_RawDistanceCm10(void) {
+    return rawDistanceCm10;
+}
+
+void Rte_Write_Distance(uint16_t dist) {
     filteredDistance = dist;
 }
 
-uint16_t Rte_Read_FilteredDistance(void) {
+uint16_t Rte_Read_Distance(void) {
     return filteredDistance;
+}
+
+void Rte_Write_ThrottleAdc(uint32_t adc) {
+    throttleAdc = adc;
 }
 
 uint32_t Rte_Read_ThrottleAdc(void) {
     return throttleAdc;
+}
+
+void Rte_Write_ThrottlePercent(uint16_t percent) {
+    throttlePercent = percent;
 }
 
 uint16_t Rte_Read_ThrottlePercent(void) {
@@ -91,12 +103,24 @@ SystemState_t Rte_Read_SystemState(void) {
     return systemState;
 }
 
-void Rte_Write_Alerts(bool green, bool yellow, bool red, bool buzzer) {
-    Alerts_SetSolid(green, yellow, red, buzzer);
-}
-
-void Rte_Update_AlertsBlink(bool green, bool yellow, bool red, bool buzzer, uint32_t interval_ms) {
-    Alerts_UpdateBlink(green, yellow, red, buzzer, interval_ms);
+void Rte_Write_Alerts(SystemState_t state) {
+    switch (state) {
+        case STATE_CRUISE:
+            Alerts_SetSolid(true, false, false, false);
+            break;
+        case STATE_FCW:
+            Alerts_UpdateBlink(false, true, false, true, 250U);
+            break;
+        case STATE_AEB:
+            Alerts_SetSolid(false, false, true, true);
+            break;
+        case STATE_SAFE_RELEASE:
+            Alerts_UpdateBlink(false, false, true, true, 100U);
+            break;
+        default:
+            Alerts_SetSolid(false, false, false, false);
+            break;
+    }
 }
 
 void Rte_LogStatus(void) {
