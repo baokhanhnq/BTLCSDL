@@ -1,142 +1,160 @@
 #include "Rte.h"
-#include "HCSR04.h"
 #include "L298N_Driver.h"
-#include "Throttle.h"
-#include "Alerts.h"
-#include "delay.h"
-#include "uart.h"
 #include <stddef.h>
 
-/* Internal RTE State Variables */
-static uint16_t rawDistance = 0;
-static uint16_t rawDistanceCm10 = 0;
-static uint16_t filteredDistance = 0;
-static uint32_t throttleAdc = 0;
-static uint16_t throttlePercent = 0;
-static uint16_t motorSpeed = 0;
-static bool brakeActive = false;
-static SystemState_t systemState = STATE_CRUISE;
+/* Du lieu chia se giua driver BSW va logic ung dung ASW. */
+static uint16_t s_rawDistance = 0U;
+static uint16_t s_rawDistanceCm10 = 0U;
+static uint16_t s_filteredDistance = 0U;
+static uint32_t s_throttleAdc = 0U;
+static uint16_t s_throttlePercent = 0U;
+static uint16_t s_motorSpeed = 0U;
+static bool s_brakeActive = false;
+static SystemState_t s_systemState = STATE_CRUISE;
 
-void Rte_Init(void) {
-    delay_init();
-    HCSR04_Init();
-    L298N_Init();
-    Throttle_Init();
-    Alerts_Init();
+/*
+ * Luu khoang cach tho theo cm cho logic AEB.
+ */
+void Rte_Write_RawDistance(uint16_t dist)
+{
+    s_rawDistance = dist;
 }
 
-void Rte_Write_RawDistance(uint16_t dist) {
-    rawDistance = dist;
+/*
+ * Doc khoang cach tho theo cm.
+ */
+uint16_t Rte_Read_RawDistance(void)
+{
+    return s_rawDistance;
 }
 
-uint16_t Rte_Read_RawDistance(void) {
-    return rawDistance;
+/*
+ * Luu khoang cach tho theo don vi 0.1 cm de log UART.
+ */
+void Rte_Write_RawDistanceCm10(uint16_t dist_cm10)
+{
+    s_rawDistanceCm10 = dist_cm10;
 }
 
-void Rte_Write_RawDistanceCm10(uint16_t dist_cm10) {
-    rawDistanceCm10 = dist_cm10;
+/*
+ * Doc khoang cach tho theo don vi 0.1 cm.
+ */
+uint16_t Rte_Read_RawDistanceCm10(void)
+{
+    return s_rawDistanceCm10;
 }
 
-uint16_t Rte_Read_RawDistanceCm10(void) {
-    return rawDistanceCm10;
+/*
+ * Luu khoang cach da loc theo cm.
+ */
+void Rte_Write_Distance(uint16_t dist)
+{
+    s_filteredDistance = dist;
 }
 
-void Rte_Write_Distance(uint16_t dist) {
-    filteredDistance = dist;
+/*
+ * Doc khoang cach da loc theo cm.
+ */
+uint16_t Rte_Read_Distance(void)
+{
+    return s_filteredDistance;
 }
 
-uint16_t Rte_Read_Distance(void) {
-    return filteredDistance;
+/*
+ * Luu gia tri ADC tho cua ga.
+ */
+void Rte_Write_ThrottleAdc(uint32_t adc)
+{
+    s_throttleAdc = adc;
 }
 
-void Rte_Write_ThrottleAdc(uint32_t adc) {
-    throttleAdc = adc;
+/*
+ * Doc gia tri ADC tho cua ga.
+ */
+uint32_t Rte_Read_ThrottleAdc(void)
+{
+    return s_throttleAdc;
 }
 
-uint32_t Rte_Read_ThrottleAdc(void) {
-    return throttleAdc;
+/*
+ * Luu lenh ga theo phan tram.
+ */
+void Rte_Write_ThrottlePercent(uint16_t percent)
+{
+    s_throttlePercent = percent;
 }
 
-void Rte_Write_ThrottlePercent(uint16_t percent) {
-    throttlePercent = percent;
+/*
+ * Doc lenh ga theo phan tram.
+ */
+uint16_t Rte_Read_ThrottlePercent(void)
+{
+    return s_throttlePercent;
 }
 
-uint16_t Rte_Read_ThrottlePercent(void) {
-    return throttlePercent;
-}
+/*
+ * Luu toc do motor va gui den L298N khi phanh khong kich hoat.
+ */
+void Rte_Write_MotorSpeed(uint16_t speed)
+{
+    s_motorSpeed = speed;
 
-void Rte_Write_MotorSpeed(uint16_t speed) {
-    motorSpeed = speed;
-    if (!brakeActive) {
+    if (s_brakeActive == false)
+    {
         L298N_SetSpeed(speed);
     }
 }
 
-uint16_t Rte_Read_MotorSpeed(void) {
-    return motorSpeed;
+/*
+ * Doc toc do motor duoc yeu cau gan nhat.
+ */
+uint16_t Rte_Read_MotorSpeed(void)
+{
+    return s_motorSpeed;
 }
 
-void Rte_Write_BrakeActive(bool active) {
-    if (active == brakeActive) {
+/*
+ * Bat hoac nha phanh. Khoi tao lai L298N khi nha phanh.
+ */
+void Rte_Write_BrakeActive(bool active)
+{
+    if (active == s_brakeActive)
+    {
         return;
     }
 
-    brakeActive = active;
-    if (active) {
+    s_brakeActive = active;
+    if (active)
+    {
         L298N_ApplyBrake();
-        motorSpeed = 0;
-    } else {
-        /* Reinitialize motor control pins for forward drive */
+        s_motorSpeed = 0U;
+    }
+    else
+    {
         L298N_Init();
     }
 }
 
-bool Rte_Read_BrakeActive(void) {
-    return brakeActive;
+/*
+ * Doc trang thai phanh hien tai.
+ */
+bool Rte_Read_BrakeActive(void)
+{
+    return s_brakeActive;
 }
 
-void Rte_Write_SystemState(SystemState_t state) {
-    systemState = state;
+/*
+ * Luu trang thai he thong hien tai.
+ */
+void Rte_Write_SystemState(SystemState_t state)
+{
+    s_systemState = state;
 }
 
-SystemState_t Rte_Read_SystemState(void) {
-    return systemState;
-}
-
-void Rte_Write_Alerts(SystemState_t state) {
-    switch (state) {
-        case STATE_CRUISE:
-            Alerts_SetSolid(true, false, false, false);
-            break;
-        case STATE_FCW:
-            Alerts_UpdateBlink(false, true, false, true, 250U);
-            break;
-        case STATE_AEB:
-            Alerts_SetSolid(false, false, true, true);
-            break;
-        case STATE_SAFE_RELEASE:
-            Alerts_UpdateBlink(false, false, true, true, 100U);
-            break;
-        default:
-            Alerts_SetSolid(false, false, false, false);
-            break;
-    }
-}
-
-void Rte_LogStatus(void) {
-    const char *state_str = "UNKNOWN";
-    switch (systemState) {
-        case STATE_CRUISE:       state_str = "CRUISE"; break;
-        case STATE_FCW:          state_str = "FCW WARNING"; break;
-        case STATE_AEB:          state_str = "AEB BRAKING"; break;
-        case STATE_SAFE_RELEASE: state_str = "SAFE RELEASE"; break;
-    }
-    UART_Printf("State: [%s] | Dist: %d cm (Raw: %d.%d cm) | Throttle: %d%% | Motor: %d%% | ADC: %d\r\n",
-                state_str,
-                filteredDistance,
-                rawDistanceCm10 / 10U,
-                rawDistanceCm10 % 10U,
-                throttlePercent,
-                motorSpeed,
-                throttleAdc);
+/*
+ * Doc trang thai he thong hien tai.
+ */
+SystemState_t Rte_Read_SystemState(void)
+{
+    return s_systemState;
 }

@@ -1,41 +1,99 @@
 #include "Alerts.h"
+#include "Rte.h"
 
 extern __IO uint32_t uwTick;
 
-static uint32_t last_toggle = 0;
-static bool toggle_state = false;
+static uint32_t s_lastToggle_ms = 0U;
+static bool s_toggleState = false;
 
-void Alerts_Init(void) {
-    /* 1. Enable Clock for GPIOC */
+/*
+ * Khoi tao PC0, PC1, PC2 va PC3 lam ngo ra canh bao.
+ */
+void Alerts_Init(void)
+{
     RCC->AHB1ENR |= RCC_AHB1ENR_GPIOCEN;
 
-    /* 2. Configure PC0 (Green), PC1 (Yellow), PC2 (Red), and PC3 (Buzzer) as Outputs */
-    GPIOC->MODER &= ~((3U << (0 * 2)) | (3U << (1 * 2)) | (3U << (2 * 2)) | (3U << (3 * 2)));
-    GPIOC->MODER |= (1U << (0 * 2)) | (1U << (1 * 2)) | (1U << (2 * 2)) | (1U << (3 * 2));
+    GPIOC->MODER &= ~((3U << (0U * 2U)) |
+                      (3U << (1U * 2U)) |
+                      (3U << (2U * 2U)) |
+                      (3U << (3U * 2U)));
+    GPIOC->MODER |= ((1U << (0U * 2U)) |
+                     (1U << (1U * 2U)) |
+                     (1U << (2U * 2U)) |
+                     (1U << (3U * 2U)));
 
-    /* 3. Turn off all LEDs and Buzzer (Active High - pull Low to turn off) */
-    GPIOC->BSRR = (1U << (0 + 16)) | (1U << (1 + 16)) | (1U << (2 + 16)) | (1U << (3 + 16));
+    Alerts_SetSolid(false, false, false, false);
 
-    last_toggle = 0;
-    toggle_state = false;
+    s_lastToggle_ms = 0U;
+    s_toggleState = false;
 }
 
-void Alerts_SetSolid(bool green, bool yellow, bool red, bool buzzer) {
-    GPIOC->BSRR = green ? (1U << 0) : (1U << (0 + 16));
-    GPIOC->BSRR = yellow ? (1U << 1) : (1U << (1 + 16));
-    GPIOC->BSRR = red ? (1U << 2) : (1U << (2 + 16));
-    GPIOC->BSRR = buzzer ? (1U << 3) : (1U << (3 + 16));
+/*
+ * Dieu khien LED va buzzer theo trang thai bat/tat co dinh.
+ */
+void Alerts_SetSolid(bool green, bool yellow, bool red, bool buzzer)
+{
+    GPIOC->BSRR = green ? (1U << 0U) : (1U << (0U + 16U));
+    GPIOC->BSRR = yellow ? (1U << 1U) : (1U << (1U + 16U));
+    GPIOC->BSRR = red ? (1U << 2U) : (1U << (2U + 16U));
+    GPIOC->BSRR = buzzer ? (1U << 3U) : (1U << (3U + 16U));
 }
 
-void Alerts_UpdateBlink(bool green, bool yellow, bool red, bool buzzer, uint32_t interval_ms) {
-    uint32_t current_time = uwTick;
-    
-    if (current_time - last_toggle >= interval_ms) {
-        last_toggle = current_time;
-        toggle_state = !toggle_state;
+/*
+ * Nhay cac ngo ra duoc chon theo cung mot chu ky.
+ */
+void Alerts_UpdateBlink(bool green,
+                        bool yellow,
+                        bool red,
+                        bool buzzer,
+                        uint32_t interval_ms)
+{
+    uint32_t current_time;
+
+    current_time = uwTick;
+
+    if ((uint32_t)(current_time - s_lastToggle_ms) >= interval_ms)
+    {
+        s_lastToggle_ms = current_time;
+        s_toggleState = !s_toggleState;
     }
-    GPIOC->BSRR = (green && toggle_state) ? (1U << 0) : (1U << (0 + 16));
-    GPIOC->BSRR = (yellow && toggle_state) ? (1U << 1) : (1U << (1 + 16));
-    GPIOC->BSRR = (red && toggle_state) ? (1U << 2) : (1U << (2 + 16));
-    GPIOC->BSRR = (buzzer && toggle_state) ? (1U << 3) : (1U << (3 + 16));
+
+    GPIOC->BSRR = (green && s_toggleState) ? (1U << 0U) : (1U << (0U + 16U));
+    GPIOC->BSRR = (yellow && s_toggleState) ? (1U << 1U) : (1U << (1U + 16U));
+    GPIOC->BSRR = (red && s_toggleState) ? (1U << 2U) : (1U << (2U + 16U));
+    GPIOC->BSRR = (buzzer && s_toggleState) ? (1U << 3U) : (1U << (3U + 16U));
+}
+
+/*
+ * Ham thuc thi canh bao.
+ * Doc trang thai he thong tu RTE va cap nhat LED/buzzer.
+ */
+void Alert_Execute(void)
+{
+    SystemState_t state;
+
+    state = Rte_Read_SystemState();
+
+    switch (state)
+    {
+        case STATE_CRUISE:
+            Alerts_SetSolid(true, false, false, false);
+            break;
+
+        case STATE_FCW:
+            Alerts_UpdateBlink(false, true, false, true, 250U);
+            break;
+
+        case STATE_AEB:
+            Alerts_SetSolid(false, false, true, true);
+            break;
+
+        case STATE_SAFE_RELEASE:
+            Alerts_UpdateBlink(false, false, true, true, 100U);
+            break;
+
+        default:
+            Alerts_SetSolid(false, false, false, false);
+            break;
+    }
 }

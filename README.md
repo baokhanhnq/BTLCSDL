@@ -32,8 +32,8 @@ Du an mo phong he thong FCW/AEB tren STM32F401RE.
 
 | Folder | Purpose |
 |---|---|
-| `ASW/` | AEB, FCW, Cruise application logic |
-| `BSW_ECUAL/` | Sensor, motor, throttle, alert drivers |
+| `ASW/` | AEB and FCW application logic |
+| `BSW_ECUAL/` | Sensor, motor, throttle control, alert drivers |
 | `RTE/` | Runtime interface between ASW and BSW |
 | `Config/` | System state, thresholds, shared config |
 | `Core/` | STM32CubeIDE generated and user core files |
@@ -59,4 +59,3 @@ Every feature branch should be merged into `main` through a Pull Request reviewe
 Open the project with STM32CubeIDE, then build the `Debug` configuration.
 
 Do not commit generated build folders such as `Debug/` and `Release/`.
-

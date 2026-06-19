@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-/* System States Enum */
+/* Cac trang thai cua he thong */
 typedef enum {
     STATE_CRUISE = 0,
     STATE_FCW,
@@ -11,24 +11,24 @@ typedef enum {
     STATE_SAFE_RELEASE
 } SystemState_t;
 
-/* System Configuration Structure */
+/* Cau truc cau hinh he thong */
 typedef struct {
     uint16_t warning_distance;
     uint16_t danger_distance;
     uint16_t safe_throttle_limit;
 } SystemConfig_t;
 
-/* Default Configurations */
-#define DEFAULT_WARNING_DISTANCE     50   /* Warn when distance < 50 cm */
-#define DEFAULT_DANGER_DISTANCE      20   /* Brake when distance < 20 cm */
-#define DEFAULT_SAFE_THROTTLE_LIMIT  10U  /* Safe to release when throttle PWM <= 10% */
+/* Cau hinh mac dinh */
+#define DEFAULT_WARNING_DISTANCE     50   /* Canh bao khi khoang cach < 50 cm */
+#define DEFAULT_DANGER_DISTANCE      20   /* Phanh khi khoang cach < 20 cm */
+#define DEFAULT_SAFE_THROTTLE_LIMIT  10U  /* Duoc nha phanh khi ga <= 10% */
 
-/* Measured motor/PWM behavior */
-#define MOTOR_STOP_DUTY_MAX          39U  /* 0-39%: wheel is treated as stopped */
-#define MOTOR_MIN_MOVING_DUTY        40U  /* Wheel starts moving at about 40% PWM */
+/* Dac tinh motor/PWM da do */
+#define MOTOR_STOP_DUTY_MAX          39U  /* 0-39%: coi nhu banh xe dung */
+#define MOTOR_MIN_MOVING_DUTY        40U  /* Banh xe bat dau quay khoang 40% PWM */
 #define FCW_MAX_DUTY                 50U
 
-/* Distance thresholds by throttle PWM/duty range */
+/* Nguong khoang cach theo vung duty/ga */
 #define THROTTLE_PWM_LEVEL_1_MAX     55U
 #define THROTTLE_PWM_LEVEL_2_MAX     70U
 #define THROTTLE_PWM_LEVEL_3_MAX     85U
