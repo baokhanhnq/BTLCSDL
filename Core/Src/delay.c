@@ -16,12 +16,12 @@ static uint32_t get_tim2_clock_hz(void) {
 }
 
 void delay_init(void) {
-    /* Update SystemCoreClock variable to ensure it is accurate */
+    /* Cap nhat SystemCoreClock de dam bao gia tri dung. */
     SystemCoreClockUpdate();
     
     RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
     TIM2->PSC = (get_tim2_clock_hz() / 1000000U) - 1U;
-    TIM2->EGR |= TIM_EGR_UG; /* Force update event to load prescaler value immediately */
+    TIM2->EGR |= TIM_EGR_UG; /* Ep update de nap prescaler ngay. */
     TIM2->ARR = 0xFFFFFFFF;
     TIM2->CNT = 0;
     TIM2->CR1 |= TIM_CR1_CEN;

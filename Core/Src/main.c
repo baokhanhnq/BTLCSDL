@@ -2,76 +2,84 @@
 /**
   ******************************************************************************
   * @file           : main.c
-  * @brief          : Main program body
+  * @brief          : Than chuong trinh chinh
   ******************************************************************************
   * @attention
   *
   * Copyright (c) 2026 STMicroelectronics.
-  * All rights reserved.
+  * Da dang ky ban quyen.
   *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
+  * Phan mem nay duoc cap phep theo dieu khoan trong file LICENSE
+  * tai thu muc goc cua thanh phan phan mem nay.
+  * Neu khong co file LICENSE, phan mem duoc cung cap theo hien trang.
   *
   ******************************************************************************
   */
 /* USER CODE END Header */
-/* Includes ------------------------------------------------------------------*/
+/* Cac file include ----------------------------------------------------------*/
 #include "main.h"
 
-/* Private includes ----------------------------------------------------------*/
+/* Include rieng -------------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "Rte.h"
 #include "system_config.h"
-#include "App_CruiseCtrl.h"
 #include "App_AebLogic.h"
 #include "HCSR04.h"
 #include "uart.h"
 #include "Throttle.h"
 #include "L298N_Driver.h"
+#include "Alerts.h"
 /* USER CODE END Includes */
 
-/* Private typedef -----------------------------------------------------------*/
+/* Kieu du lieu rieng --------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 
 /* USER CODE END PTD */
 
-/* Private define ------------------------------------------------------------*/
+/* Dinh nghia rieng ----------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define SENSOR_TASK_PERIOD_MS    10U
-#define APP_TASK_PERIOD_MS       50U
+/* Tac vu cam bien va tac vu ung dung dong bo voi chu ky trigger 20 ms cua HC-SR04. */
+#define SENSOR_TASK_PERIOD_MS    20U
+#define APP_TASK_PERIOD_MS       20U
+#define LOG_TASK_PERIOD_MS       100U
 
 /* USER CODE END PD */
 
-/* Private macro -------------------------------------------------------------*/
+/* Macro rieng ---------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
 
 /* USER CODE END PM */
 
-/* Private variables ---------------------------------------------------------*/
+/* Bien rieng ----------------------------------------------------------------*/
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 static uint32_t sensorTaskLastTick = 0U;
 static uint32_t appTaskLastTick = 0U;
+static uint32_t logTaskLastTick = 0U;
 
 /* USER CODE END PV */
 
-/* Private function prototypes -----------------------------------------------*/
+/* Khai bao nguyen mau ham rieng ---------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
+/*
+ * In nhanh du lieu hien tai trong RTE qua UART.
+ * Dat trong main de RTE chi luu du lieu, khong phu trach UART.
+ */
+static void Main_LogStatus(void);
 
 /* USER CODE END PFP */
 
-/* Private user code ---------------------------------------------------------*/
+/* Code nguoi dung rieng -----------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
 /* USER CODE END 0 */
 
 /**
-  * @brief  The application entry point.
+  * @brief  Diem vao cua ung dung.
   * @retval int
   */
 int main(void)
@@ -81,30 +89,34 @@ int main(void)
 
   /* USER CODE END 1 */
 
-  /* MCU Configuration--------------------------------------------------------*/
+  /* Cau hinh MCU ------------------------------------------------------------*/
 
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  /* Reset ngoai vi, khoi tao Flash interface va SysTick. */
   HAL_Init();
 
   /* USER CODE BEGIN Init */
 
   /* USER CODE END Init */
 
-  /* Configure the system clock */
+  /* Cau hinh xung nhip he thong. */
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
 
   /* USER CODE END SysInit */
 
-  /* Initialize all configured peripherals */
+  /* Khoi tao cac ngoai vi da cau hinh. */
   MX_GPIO_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
   UART2_Init(&huart2);
-  Rte_Init();
+  HCSR04_Init();
+  L298N_Init();
+  Throttle_Init();
+  Alerts_Init();
   sensorTaskLastTick = HAL_GetTick();
   appTaskLastTick = sensorTaskLastTick;
+  logTaskLastTick = sensorTaskLastTick;
   
   SystemConfig_t sys_config = {
       .warning_distance = DEFAULT_WARNING_DISTANCE,
@@ -112,11 +124,10 @@ int main(void)
       .safe_throttle_limit = DEFAULT_SAFE_THROTTLE_LIMIT
   };
   
-  App_CruiseCtrl_Init();
   App_AebLogic_Init(sys_config);
   /* USER CODE END 2 */
 
-  /* Infinite loop */
+  /* Vong lap vo han. */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
@@ -125,6 +136,8 @@ int main(void)
       if ((uint32_t)(now - sensorTaskLastTick) >= SENSOR_TASK_PERIOD_MS)
       {
           sensorTaskLastTick = now;
+
+          /* Doc cac ngo vao va luu gia tri moi vao RTE. */
           HCSR04_Process();
           Throttle_Process();
       }
@@ -132,8 +145,19 @@ int main(void)
       if ((uint32_t)(now - appTaskLastTick) >= APP_TASK_PERIOD_MS)
       {
           appTaskLastTick = now;
+
+          /* Tinh trang thai, sau do thuc thi motor va canh bao. */
           App_AebLogic_Process();
-          App_CruiseCtrl_Process();
+          Throttle_Execute();
+          Alert_Execute();
+      }
+
+      if ((uint32_t)(now - logTaskLastTick) >= LOG_TASK_PERIOD_MS)
+      {
+          logTaskLastTick = now;
+
+          /* UART cham hon dieu khien, nen viec log chay bang tac vu rieng. */
+          Main_LogStatus();
       }
     /* USER CODE END WHILE */
 
@@ -143,21 +167,21 @@ int main(void)
 }
 
 /**
-  * @brief System Clock Configuration
-  * @retval None
+  * @brief Cau hinh xung nhip he thong.
+  * @retval Khong co
   */
 void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-  /** Configure the main internal regulator output voltage
+  /** Cau hinh dien ap ngo ra cua bo dieu ap noi chinh.
   */
   __HAL_RCC_PWR_CLK_ENABLE();
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE2);
 
-  /** Initializes the RCC Oscillators according to the specified parameters
-  * in the RCC_OscInitTypeDef structure.
+  /** Khoi tao cac bo dao dong RCC theo tham so trong cau truc
+  * RCC_OscInitTypeDef.
   */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
@@ -173,7 +197,7 @@ void SystemClock_Config(void)
     Error_Handler();
   }
 
-  /** Initializes the CPU, AHB and APB buses clocks
+  /** Khoi tao xung nhip cho CPU, bus AHB va bus APB.
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
@@ -189,9 +213,9 @@ void SystemClock_Config(void)
 }
 
 /**
-  * @brief USART2 Initialization Function
-  * @param None
-  * @retval None
+  * @brief Ham khoi tao USART2.
+  * @param Khong co
+  * @retval Khong co
   */
 static void MX_USART2_UART_Init(void)
 {
@@ -222,9 +246,9 @@ static void MX_USART2_UART_Init(void)
 }
 
 /**
-  * @brief GPIO Initialization Function
-  * @param None
-  * @retval None
+  * @brief Ham khoi tao GPIO.
+  * @param Khong co
+  * @retval Khong co
   */
 static void MX_GPIO_Init(void)
 {
@@ -233,22 +257,22 @@ static void MX_GPIO_Init(void)
 
   /* USER CODE END MX_GPIO_Init_1 */
 
-  /* GPIO Ports Clock Enable */
+  /* Bat xung nhip cho cac port GPIO. */
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
-  /*Configure GPIO pin Output Level */
+  /* Cau hinh muc ngo ra ban dau cho GPIO. */
   HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin : B1_Pin */
+  /* Cau hinh chan GPIO: B1_Pin. */
   GPIO_InitStruct.Pin = B1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : LD2_Pin */
+  /* Cau hinh chan GPIO: LD2_Pin. */
   GPIO_InitStruct.Pin = LD2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -261,17 +285,44 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+/*
+ * Doi trang thai he thong sang chuoi de doc va in mot dong trang thai.
+ */
+static void Main_LogStatus(void)
+{
+  const char *state_str = "UNKNOWN";
+  SystemState_t state = Rte_Read_SystemState();
+  uint16_t raw_distance_cm10 = Rte_Read_RawDistanceCm10();
+
+  switch (state)
+  {
+    case STATE_CRUISE:       state_str = "CRUISE"; break;
+    case STATE_FCW:          state_str = "FCW WARNING"; break;
+    case STATE_AEB:          state_str = "AEB BRAKING"; break;
+    case STATE_SAFE_RELEASE: state_str = "SAFE RELEASE"; break;
+    default:                 state_str = "UNKNOWN"; break;
+  }
+
+  UART_Printf("State: [%s] | Dist: %d cm (Raw: %d.%d cm) | Throttle: %d%% | Motor: %d%% | ADC: %d\r\n",
+              state_str,
+              Rte_Read_Distance(),
+              raw_distance_cm10 / 10U,
+              raw_distance_cm10 % 10U,
+              Rte_Read_ThrottlePercent(),
+              Rte_Read_MotorSpeed(),
+              Rte_Read_ThrottleAdc());
+}
 
 /* USER CODE END 4 */
 
 /**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
+  * @brief  Ham nay duoc goi khi xay ra loi.
+  * @retval Khong co
   */
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
+  /* Co the them xu ly rieng de bao trang thai loi HAL. */
   __disable_irq();
   while (1)
   {
@@ -281,17 +332,16 @@ void Error_Handler(void)
 
 #ifdef  USE_FULL_ASSERT
 /**
-  * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
+  * @brief  Bao ten file nguon va so dong noi xay ra loi assert_param.
+  * @param  file: con tro toi ten file nguon
+  * @param  line: so dong xay ra loi assert_param
+  * @retval Khong co
   */
 void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
-  /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+  /* Co the them xu ly rieng de bao ten file va so dong,
+     vi du: printf("Gia tri tham so sai: file %s dong %d\r\n", file, line) */
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */

@@ -31,14 +31,12 @@ Main files:
 
 - `ASW/App_AebLogic.c`
 - `ASW/App_AebLogic.h`
-- `ASW/App_CruiseCtrl.c`
-- `ASW/App_CruiseCtrl.h`
 - `ASW/Filter_Median.c`
 - `ASW/Filter_Median.h`
 
 Responsibility:
 
-- AEB, FCW, Cruise state machine.
+- AEB and FCW state machine.
 - Distance thresholds by speed.
 - Median filter behavior.
 - Safety release condition.
@@ -59,7 +57,7 @@ Main files:
 Responsibility:
 
 - HC-SR04 distance measurement.
-- Throttle ADC reading.
+- Throttle ADC reading and motor speed command.
 - Microsecond/millisecond delay.
 - Sensor calibration.
 
@@ -118,4 +116,3 @@ Use short, clear commit messages:
 - `Update AEB thresholds by PWM speed`
 - `Fix motor stop behavior below 40 percent`
 - `Add UART status logging`
-
