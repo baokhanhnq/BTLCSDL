@@ -39,7 +39,7 @@
 /* Dinh nghia rieng ----------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 /* Tac vu cam bien va tac vu ung dung dong bo voi chu ky trigger 20 ms cua HC-SR04. */
-#define SENSOR_TASK_PERIOD_MS    20U
+#define SENSOR_TASK_PERIOD_MS    10U
 #define APP_TASK_PERIOD_MS       20U
 #define LOG_TASK_PERIOD_MS       100U
 
@@ -305,7 +305,7 @@ static void Main_LogStatus(void)
 
   UART_Printf("State: [%s] | Dist: %d cm (Raw: %d.%d cm) | Throttle: %d%% | Motor: %d%% | ADC: %d\r\n",
               state_str,
-              Rte_Read_Distance(),
+              Rte_Read_FilterDistance(),
               raw_distance_cm10 / 10U,
               raw_distance_cm10 % 10U,
               Rte_Read_ThrottlePercent(),

@@ -21,17 +21,21 @@ void App_AebLogic_Init(SystemConfig_t config)
 
 void App_AebLogic_Process(void)
 {
-    uint16_t filtered_dist =
-        Filter_Median_Update(&s_distanceFilter,
-                             Rte_Read_RawDistance());
-
-    uint16_t set_speed = Rte_Read_ThrottlePercent();
-
-    SystemState_t state     = Rte_Read_SystemState();
-    SystemState_t new_state = state;
-
+    uint16_t filtered_dist;
+    uint16_t set_speed;
     uint16_t danger_dist;
     uint16_t warning_dist;
+    SystemState_t state;
+    SystemState_t new_state;
+
+    filtered_dist = Filter_Median_Update(&s_distanceFilter,
+                                         Rte_Read_RawDistance());
+    /* Luu khoang cach da loc rieng de UART log va de debug de doc hon. */
+    Rte_Write_FilterDistance(filtered_dist);
+
+    set_speed = Rte_Read_ThrottlePercent();
+    state = Rte_Read_SystemState();
+    new_state = state;
 
     /* Chon nguong theo toc do */
     if (set_speed <= THROTTLE_PWM_LEVEL_1_MAX)
@@ -58,6 +62,7 @@ void App_AebLogic_Process(void)
     /* Xe dang dung */
     if (set_speed <= MOTOR_STOP_DUTY_MAX)
     {
+        /* Ga qua nho thi coi nhu xe dung, khong kich hoat FCW/AEB. */
         new_state = STATE_CRUISE;
     }
     else
@@ -99,6 +104,7 @@ void App_AebLogic_Process(void)
                 /* Giu AEB den khi thoat vung nguy hiem */
                 if (filtered_dist > danger_dist)
                 {
+                    /* Vua thoat nguy hiem thi vao SAFE_RELEASE truoc khi ve CRUISE. */
                     new_state = STATE_SAFE_RELEASE;
                 }
                 break;
@@ -115,6 +121,7 @@ void App_AebLogic_Process(void)
                 else if ((filtered_dist >= AEB_DISTANCE_MIN) &&
                          (filtered_dist <= danger_dist))
                 {
+                    /* Vat can quay lai gan trong luc dang nha phanh thi vao AEB lai. */
                     new_state = STATE_AEB;
                 }
                 break;

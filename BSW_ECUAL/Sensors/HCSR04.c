@@ -8,43 +8,25 @@
 /* PA1: ngo vao ECHO qua ngat EXTI1. */
 #define ECHO_PIN            1U
 
-/* Echo phai ket thuc trong mot chu ky trigger phan cung 20 ms. */
 #define ECHO_TIMEOUT_US     20000U
 #define TIM2_PERIOD_US      20000U
 
 static volatile uint32_t s_echoRiseTime_us = 0U;
-static volatile uint32_t s_triggerTime_us = 0U;
+static volatile uint32_t s_echoFallTime_us = 0U;
 static volatile uint8_t s_measuring = 0U;
+static volatile uint8_t s_dataReady = 0U;
 
-/* Khoang cach hop le cuoi cung theo don vi 0.1 cm. Vi du: 123 la 12.3 cm. */
+/* Khoang cach hop le cuoi cung theo don vi 0.1 cm. */
 static uint32_t s_lastDistance_cm10 = 0U;
 
-/*
- * Luu ca hai dinh dang khoang cach vao RTE.
- * RawDistanceCm10 giu do chinh xac 0.1 cm de log.
- * RawDistance duoc lam tron ve cm cho logic AEB.
- */
-static void HCSR04_WriteDistance(uint32_t distance_cm10)
-{
-    s_lastDistance_cm10 = distance_cm10;
-    Rte_Write_RawDistanceCm10((uint16_t)distance_cm10);
-    Rte_Write_RawDistance((uint16_t)((distance_cm10 + 5U) / 10U));
-}
-
-/*
- * Cau hinh TIM2 CH1 tao xung trigger 10 us khong block CPU
- * moi 20 ms tren PA0.
- */
 static void TIM2_PWM_Init(void)
 {
     RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
 
-    /* 84 MHz / 84 = 1 MHz, moi tick cua TIM2 la 1 us. */
     TIM2->PSC = 83U;
     TIM2->ARR = TIM2_PERIOD_US - 1U;
     TIM2->CCR1 = 10U;
 
-    /* PWM mode 1: PA0 muc cao khi CNT < CCR1. */
     TIM2->CCMR1 &= ~TIM_CCMR1_OC1M;
     TIM2->CCMR1 |= (6U << TIM_CCMR1_OC1M_Pos) | TIM_CCMR1_OC1PE;
 
@@ -54,9 +36,6 @@ static void TIM2_PWM_Init(void)
     TIM2->CR1 |= TIM_CR1_CEN;
 }
 
-/*
- * Cau hinh PA0 la chuc nang thay the TIM2_CH1 va PA1 la ngo vao ECHO.
- */
 static void GPIO_HCSR04_Init(void)
 {
     RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN;
@@ -71,9 +50,6 @@ static void GPIO_HCSR04_Init(void)
     GPIOA->PUPDR &= ~(3U << (ECHO_PIN * 2U));
 }
 
-/*
- * Cau hinh EXTI1 bat ca canh len va canh xuong tren PA1.
- */
 static void EXTI1_Init(void)
 {
     RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
@@ -82,7 +58,7 @@ static void EXTI1_Init(void)
     SYSCFG->EXTICR[0] |= SYSCFG_EXTICR1_EXTI1_PA;
 
     EXTI->RTSR |= (1U << ECHO_PIN);
-    EXTI->FTSR |= (1U << ECHO_PIN);
+    EXTI->FTSR &= ~(1U << ECHO_PIN);
     EXTI->IMR |= (1U << ECHO_PIN);
     EXTI->PR = (1U << ECHO_PIN);
 
@@ -90,108 +66,121 @@ static void EXTI1_Init(void)
     NVIC_EnableIRQ(EXTI1_IRQn);
 }
 
-/*
- * Khoi tao PWM trigger, GPIO ECHO va ngat ECHO cho HC-SR04.
- */
 void HCSR04_Init(void)
 {
+    /* Khoi tao day duong trigger, echo va timer truoc khi bat dau do. */
     GPIO_HCSR04_Init();
     TIM2_PWM_Init();
     EXTI1_Init();
 
+    /* Xoa trang thai do cu de chu ky dau tien bat dau tu moc sach. */
     s_lastDistance_cm10 = 0U;
     s_echoRiseTime_us = 0U;
-    s_triggerTime_us = 0U;
+    s_echoFallTime_us = 0U;
     s_measuring = 0U;
+    s_dataReady = 0U;
 }
 
-/*
- * Chay moi 20 ms.
- * Neu xung ECHO truoc chua ket thuc, giu khoang cach hop le cuoi.
- * Sau do chuan bi trang thai cho chu ky trigger phan cung moi.
- */
-void Hcsr04_CheckTimeout_20ms(void)
+void HCSR04_Process(void)
 {
+    uint32_t current_distance_cm10;
+    uint32_t rise;
+    uint32_t fall;
+    uint32_t width_us;
+
+    current_distance_cm10 = s_lastDistance_cm10;
+    rise = 0U;
+    fall = 0U;
+    width_us = 0U;
+
+    /* Neu chu ky truoc van dang do thi coi la timeout va giu gia tri cu. */
     if (s_measuring != 0U)
     {
         s_measuring = 0U;
-        HCSR04_WriteDistance(s_lastDistance_cm10);
+        s_dataReady = 0U;
+
+        /* Dua EXTI ve trang thai bat suon len cho lan trigger tiep theo. */
+        EXTI->RTSR |= (1U << ECHO_PIN);
+        EXTI->FTSR &= ~(1U << ECHO_PIN);
+    }
+    /* Neu ISR da bat duoc ca suon len va suon xuong thi tinh do rong xung. */
+    else if (s_dataReady != 0U)
+    {
+        s_dataReady = 0U;
+
+        rise = s_echoRiseTime_us;
+        fall = s_echoFallTime_us;
+
+        /* TIM2 chay vong 20 ms nen can xu ly ca truong hop CNT bi tran. */
+        if (fall >= rise)
+        {
+            width_us = fall - rise;
+        }
+        else
+        {
+            width_us = (TIM2_PERIOD_US - rise) + fall;
+        }
+
+        /* Chi cap nhat khi xung echo hop le, neu khong tiep tuc giu gia tri cu. */
+        if ((width_us > 0U) && (width_us < ECHO_TIMEOUT_US))
+        {
+            current_distance_cm10 = ((width_us * 10U) + 29U) / 58U;
+            s_lastDistance_cm10 = current_distance_cm10;
+        }
+    }
+    else
+    {
+        /* Giu khoang cach hop le gan nhat. */
     }
 
+    /* Ghi ca don vi 0.1 cm de log va cm lam tron de AEB xu ly. */
+    Rte_Write_RawDistanceCm10((uint16_t)current_distance_cm10);
+    Rte_Write_RawDistance((uint16_t)((current_distance_cm10 + 5U) / 10U));
+
+    /* Mo chu ky do moi, cho ISR bat suon echo cua lan trigger tiep theo. */
     EXTI->PR = (1U << ECHO_PIN);
-    s_triggerTime_us = TIM2->CNT;
     s_measuring = 1U;
 }
 
-/*
- * API cu duoc giu lai cho code cu.
- */
-void Hcsr04_GetDistance(void)
-{
-    Hcsr04_CheckTimeout_20ms();
-}
-
-/*
- * API chu ky duoc goi tu tac vu cam bien.
- */
-void HCSR04_Process(void)
-{
-    Hcsr04_CheckTimeout_20ms();
-}
-
-/*
- * Xu ly cac canh ECHO.
- * Canh len ghi thoi diem bat dau; canh xuong doi do rong xung sang khoang cach.
- */
-void HCSR04_ECHO_IRQHandler(void)
-{
-    uint32_t timestamp;
-    uint32_t width_us;
-
-    if ((EXTI->PR & (1U << ECHO_PIN)) == 0U)
-    {
-        return;
-    }
-
-    EXTI->PR = (1U << ECHO_PIN);
-    timestamp = TIM2->CNT;
-
-    if ((GPIOA->IDR & (1U << ECHO_PIN)) != 0U)
-    {
-        s_echoRiseTime_us = timestamp;
-        return;
-    }
-
-    if (s_measuring == 0U)
-    {
-        return;
-    }
-
-    if (timestamp >= s_echoRiseTime_us)
-    {
-        width_us = timestamp - s_echoRiseTime_us;
-    }
-    else
-    {
-        width_us = (TIM2_PERIOD_US - s_echoRiseTime_us) + timestamp;
-    }
-
-    if ((width_us > 0U) && (width_us < ECHO_TIMEOUT_US))
-    {
-        HCSR04_WriteDistance(((width_us * 10U) + 29U) / 58U);
-    }
-    else
-    {
-        HCSR04_WriteDistance(s_lastDistance_cm10);
-    }
-
-    s_measuring = 0U;
-}
-
-/*
- * Ten callback ngat uu tien duoc stm32f4xx_it.c su dung.
- */
 void HCSR04_EchoIrqHandler(void)
 {
-    HCSR04_ECHO_IRQHandler();
+    uint32_t timestamp;
+    uint32_t echo_mask;
+
+    timestamp = 0U;
+    echo_mask = (1U << ECHO_PIN);
+
+    if ((EXTI->PR & echo_mask) != 0U)
+    {
+        /* Xoa co ngat truoc, sau do chup moc thoi gian bang TIM2->CNT. */
+        EXTI->PR = echo_mask;
+        timestamp = TIM2->CNT;
+
+        /* Suon len: luu moc bat dau xung echo va doi sang bat suon xuong. */
+        if ((EXTI->RTSR & echo_mask) != 0U)
+        {
+            s_echoRiseTime_us = timestamp;
+
+            EXTI->RTSR &= ~echo_mask;
+            EXTI->FTSR |= echo_mask;
+        }
+        /* Suon xuong: luu moc ket thuc xung echo va bao process co du lieu. */
+        else if ((EXTI->FTSR & echo_mask) != 0U)
+        {
+            if (s_measuring != 0U)
+            {
+                s_echoFallTime_us = timestamp;
+                s_dataReady = 1U;
+                s_measuring = 0U;
+            }
+
+            /* Quay lai bat suon len de san sang cho chu ky trigger sau. */
+            EXTI->FTSR &= ~echo_mask;
+            EXTI->RTSR |= echo_mask;
+        }
+        else
+        {
+            /* Khong co canh nao duoc cau hinh. */
+        }
+    }
 }

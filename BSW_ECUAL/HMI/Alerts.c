@@ -6,6 +6,13 @@ extern __IO uint32_t uwTick;
 static uint32_t s_lastToggle_ms = 0U;
 static bool s_toggleState = false;
 
+static void Alerts_SetSolid(bool green, bool yellow, bool red, bool buzzer);
+static void Alerts_UpdateBlink(bool green,
+                               bool yellow,
+                               bool red,
+                               bool buzzer,
+                               uint32_t interval_ms);
+
 /*
  * Khoi tao PC0, PC1, PC2 va PC3 lam ngo ra canh bao.
  */
@@ -31,7 +38,7 @@ void Alerts_Init(void)
 /*
  * Dieu khien LED va buzzer theo trang thai bat/tat co dinh.
  */
-void Alerts_SetSolid(bool green, bool yellow, bool red, bool buzzer)
+static void Alerts_SetSolid(bool green, bool yellow, bool red, bool buzzer)
 {
     GPIOC->BSRR = green ? (1U << 0U) : (1U << (0U + 16U));
     GPIOC->BSRR = yellow ? (1U << 1U) : (1U << (1U + 16U));
@@ -42,11 +49,11 @@ void Alerts_SetSolid(bool green, bool yellow, bool red, bool buzzer)
 /*
  * Nhay cac ngo ra duoc chon theo cung mot chu ky.
  */
-void Alerts_UpdateBlink(bool green,
-                        bool yellow,
-                        bool red,
-                        bool buzzer,
-                        uint32_t interval_ms)
+static void Alerts_UpdateBlink(bool green,
+                               bool yellow,
+                               bool red,
+                               bool buzzer,
+                               uint32_t interval_ms)
 {
     uint32_t current_time;
 
