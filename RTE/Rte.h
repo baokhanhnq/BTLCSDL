@@ -12,8 +12,8 @@ uint16_t Rte_Read_RawDistance(void);
 void Rte_Write_RawDistanceCm10(uint16_t dist_cm10);
 uint16_t Rte_Read_RawDistanceCm10(void);
 
-void Rte_Write_Distance(uint16_t dist);
-uint16_t Rte_Read_Distance(void);
+void Rte_Write_FilterDistance(uint16_t dist);
+uint16_t Rte_Read_FilterDistance(void);
 
 /* API ga nguoi dung */
 void Rte_Write_ThrottleAdc(uint32_t adc);

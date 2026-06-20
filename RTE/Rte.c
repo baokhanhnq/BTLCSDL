@@ -1,6 +1,4 @@
 #include "Rte.h"
-#include "L298N_Driver.h"
-#include <stddef.h>
 
 /* Du lieu chia se giua driver BSW va logic ung dung ASW. */
 static uint16_t s_rawDistance = 0U;
@@ -47,7 +45,7 @@ uint16_t Rte_Read_RawDistanceCm10(void)
 /*
  * Luu khoang cach da loc theo cm.
  */
-void Rte_Write_Distance(uint16_t dist)
+void Rte_Write_FilterDistance(uint16_t dist)
 {
     s_filteredDistance = dist;
 }
@@ -55,7 +53,7 @@ void Rte_Write_Distance(uint16_t dist)
 /*
  * Doc khoang cach da loc theo cm.
  */
-uint16_t Rte_Read_Distance(void)
+uint16_t Rte_Read_FilterDistance(void)
 {
     return s_filteredDistance;
 }
@@ -93,16 +91,11 @@ uint16_t Rte_Read_ThrottlePercent(void)
 }
 
 /*
- * Luu toc do motor va gui den L298N khi phanh khong kich hoat.
+ * Luu toc do motor duoc yeu cau. Viec dieu khien phan cung nam o task execute.
  */
 void Rte_Write_MotorSpeed(uint16_t speed)
 {
     s_motorSpeed = speed;
-
-    if (s_brakeActive == false)
-    {
-        L298N_SetSpeed(speed);
-    }
 }
 
 /*
@@ -114,25 +107,11 @@ uint16_t Rte_Read_MotorSpeed(void)
 }
 
 /*
- * Bat hoac nha phanh. Khoi tao lai L298N khi nha phanh.
+ * Luu trang thai phanh duoc yeu cau.
  */
 void Rte_Write_BrakeActive(bool active)
 {
-    if (active == s_brakeActive)
-    {
-        return;
-    }
-
     s_brakeActive = active;
-    if (active)
-    {
-        L298N_ApplyBrake();
-        s_motorSpeed = 0U;
-    }
-    else
-    {
-        L298N_Init();
-    }
 }
 
 /*
