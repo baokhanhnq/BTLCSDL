@@ -70,7 +70,7 @@ void Alerts_UpdateBlink(bool green,
  */
 void Alert_Execute(void)
 {
-    SystemState_t state;
+    SystemState_t state = STATE_CRUISE;
 
     state = Rte_Read_SystemState();
 
