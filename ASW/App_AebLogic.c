@@ -17,12 +17,14 @@ void App_AebLogic_Init(SystemConfig_t config)
 
     /* Trang thai mac dinh */
     Rte_Write_SystemState(STATE_CRUISE);
+    Rte_Write_BrakeActive(false);
 }
 
 void App_AebLogic_Process(void)
 {
     uint16_t filtered_dist;
     uint16_t set_speed;
+    uint16_t safe_throttle_limit;
     uint16_t danger_dist;
     uint16_t warning_dist;
     SystemState_t state;
@@ -34,6 +36,7 @@ void App_AebLogic_Process(void)
     Rte_Write_FilterDistance(filtered_dist);
 
     set_speed = Rte_Read_ThrottlePercent();
+    safe_throttle_limit = s_systemConfig.safe_throttle_limit;
     state = Rte_Read_SystemState();
     new_state = state;
 
@@ -59,10 +62,12 @@ void App_AebLogic_Process(void)
         warning_dist = FCW_DISTANCE_LEVEL_4;
     }
 
-    /* Xe dang dung */
-    if (set_speed <= MOTOR_STOP_DUTY_MAX)
+    /* Khi chua bi AEB giu lai, ga qua nho thi coi nhu xe dung va ve CRUISE. */
+    if ((set_speed <= MOTOR_STOP_DUTY_MAX) &&
+        (state != STATE_AEB) &&
+        (state != STATE_SAFE_RELEASE))
     {
-        /* Ga qua nho thi coi nhu xe dung, khong kich hoat FCW/AEB. */
+        /* Khong kich hoat FCW/AEB khi nguoi lai khong yeu cau xe chay. */
         new_state = STATE_CRUISE;
     }
     else
@@ -101,28 +106,43 @@ void App_AebLogic_Process(void)
 
             case STATE_AEB:
 
-                /* Giu AEB den khi thoat vung nguy hiem */
+                /* Giu AEB den khi thoat vung nguy hiem. */
                 if (filtered_dist > danger_dist)
                 {
-                    /* Vua thoat nguy hiem thi vao SAFE_RELEASE truoc khi ve CRUISE. */
-                    new_state = STATE_SAFE_RELEASE;
+                    if ((filtered_dist >=
+                         (warning_dist + DISTANCE_HYSTERESIS)) &&
+                        (set_speed <= safe_throttle_limit))
+                    {
+                        /* Chi ve CRUISE khi vat da an toan va tay ga da ha xuong. */
+                        new_state = STATE_CRUISE;
+                    }
+                    else
+                    {
+                        /* Neu moi chi thoat AEB nhung chua du dieu kien nha, tiep tuc giu phanh. */
+                        new_state = STATE_SAFE_RELEASE;
+                    }
                 }
                 break;
 
             case STATE_SAFE_RELEASE:
 
-                /* Quay lai CRUISE khi da an toan */
-                if (filtered_dist >=
-                    (warning_dist + DISTANCE_HYSTERESIS))
-                {
-                    new_state = STATE_CRUISE;
-                }
-                /* Vat can xuat hien lai */
-                else if ((filtered_dist >= AEB_DISTANCE_MIN) &&
+                if ((filtered_dist >= AEB_DISTANCE_MIN) &&
                          (filtered_dist <= danger_dist))
                 {
                     /* Vat can quay lai gan trong luc dang nha phanh thi vao AEB lai. */
                     new_state = STATE_AEB;
+                }
+                else if ((filtered_dist >=
+                          (warning_dist + DISTANCE_HYSTERESIS)) &&
+                         (set_speed <= safe_throttle_limit))
+                {
+                    /* Du ca hai dieu kien: khoang cach an toan va ga <= nguong nha phanh. */
+                    new_state = STATE_CRUISE;
+                }
+                else
+                {
+                    /* Con thieu mot trong hai dieu kien nen tiep tuc giu SAFE_RELEASE. */
+                    new_state = STATE_SAFE_RELEASE;
                 }
                 break;
 
@@ -134,4 +154,6 @@ void App_AebLogic_Process(void)
 
     /* Cap nhat trang thai he thong */
     Rte_Write_SystemState(new_state);
+    Rte_Write_BrakeActive((new_state == STATE_AEB) ||
+                          (new_state == STATE_SAFE_RELEASE));
 }
