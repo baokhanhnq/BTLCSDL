@@ -2,7 +2,7 @@
 #include "adc.h"
 #include "Rte.h"
 #include "system_config.h"
-
+#include "L298N_Driver.h"
 /*
  * Khoi tao ngo vao ADC cua bien tro ga.
  */
@@ -67,23 +67,31 @@ void Throttle_Execute(void)
 
     if ((throttle_adc == 0U) || (target_duty <= MOTOR_STOP_DUTY_MAX))
     {
-        target_duty = 0U;
+        Rte_Write_BrakeActive(false);
+        Rte_Write_SystemState(STATE_CRUISE);
+        L298N_SetSpeed(0U);
+        Rte_Write_MotorSpeed(0U); // Cập nhật để UART log
+        return; /* Thoát sớm để không xử lý tiếp bằng state cũ sau khi đã update về CRUISE*/
     }
 
     if (state == STATE_CRUISE)
     {
-        Rte_Write_MotorSpeed(target_duty);
+        Rte_Write_MotorSpeed(target_duty); // Cập nhật để UART log
+        L298N_SetSpeed(target_duty);
     }
     else if (state == STATE_FCW)
     {
         uint16_t capped_duty;
 
         capped_duty = (target_duty > FCW_MAX_DUTY) ? FCW_MAX_DUTY : target_duty;
-        Rte_Write_MotorSpeed(capped_duty);
+        Rte_Write_MotorSpeed(capped_duty); // Cập nhật để UART log
+        L298N_SetSpeed(capped_duty);
     }
     else
     {
         /* AEB va Safe Release ep toc do motor ve 0. */
-        Rte_Write_MotorSpeed(0U);
+        Rte_Write_MotorSpeed(0U); // Cập nhật để UART log
+        L298N_SetSpeed(0U);
+        L298N_ApplyBrake();
     }
 }
