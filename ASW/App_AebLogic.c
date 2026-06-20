@@ -30,9 +30,8 @@ void App_AebLogic_Process(void)
     SystemState_t state     = Rte_Read_SystemState();
     SystemState_t new_state = state;
 
-    uint16_t danger_dist;
-    uint16_t warning_dist;
-
+    uint16_t danger_dist = 0U;
+    uint16_t warning_dist = 0U;
     /* Chon nguong theo toc do */
     if (set_speed <= THROTTLE_PWM_LEVEL_1_MAX)
     {
